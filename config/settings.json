@@ -1,0 +1,10 @@
+{
+  "x_cookie": "",
+  "apify_token": "",
+  "zhipu_api_key": "",
+  "email_smtp_host": "smtp.gmail.com",
+  "email_smtp_port": 587,
+  "email_from": "",
+  "email_to": "",
+  "email_password": ""
+}
