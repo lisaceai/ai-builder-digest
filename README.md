@@ -5,7 +5,7 @@
 ## 功能
 
 - 🤖 自动抓取指定用户的X推文
-- 📝 AI生成摘要（使用OpenAI GPT-4o mini）
+- 📝 AI生成摘要（使用智谱 GLM-4.7-flash）
 - 📧 每天定时发送到邮箱
 - ☁️ 基于GitHub Actions + Apify，无需服务器
 
@@ -73,7 +73,7 @@ python scripts/send_email.py summarized_tweets.json
 - Cookie可能过期，需要定期更新
 - GitHub Actions每月有2000分钟免费额度
 - Apify有免费credits，初期够用
-- OpenAI API按调用付费
+- 智谱AI API按调用付费
 
 ## 文件结构
 
@@ -88,13 +88,12 @@ python scripts/send_email.py summarized_tweets.json
 │       └── daily-digest.yml
 ├── scripts/
 │   ├── summarize.py       # AI摘要生成
-│   ├── send_email.py     # 邮件发送
-│   └── process.py        # 数据处理
+│   └── send_email.py      # 邮件发送
 ├── config/
-│   ├── users.json        # AI builder列表
-│   └── settings.json     # 配置
+│   ├── users.json         # AI builder列表
+│   └── settings.json      # 配置
 ├── templates/
-│   └── email.html        # 邮件模板
+│   └── email.html         # 邮件模板
 └── requirements.txt
 ```
 
