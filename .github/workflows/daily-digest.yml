@@ -58,7 +58,7 @@ jobs:
           RUN_ID=${{ steps.apify.outputs.run_id }}
           echo "Waiting for Apify run $RUN_ID to complete..."
 
-          MAX_WAIT=300
+          MAX_WAIT=600
           WAITED=0
 
           while [ $WAITED -lt $MAX_WAIT ]; do
