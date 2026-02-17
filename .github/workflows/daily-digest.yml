@@ -37,8 +37,7 @@ jobs:
               "cookie": $cookie
             }')
 
-          RESPONSE=$(curl -s -X POST "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs" \
-            -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" \
+          RESPONSE=$(curl -s -X POST "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs?token=${{ secrets.APIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
 
@@ -63,8 +62,8 @@ jobs:
           WAITED=0
 
           while [ $WAITED -lt $MAX_WAIT ]; do
-            STATUS=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID" \
-              -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" | jq -r '.data.status')
+            STATUS=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
+              | jq -r '.data.status')
 
             echo "Current status: $STATUS"
 
@@ -89,13 +88,12 @@ jobs:
         run: |
           RUN_ID=${{ steps.apify.outputs.run_id }}
 
-          DATASET_ID=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID" \
-            -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" | jq -r '.data.defaultDatasetId')
+          DATASET_ID=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
+            | jq -r '.data.defaultDatasetId')
 
           echo "Dataset ID: $DATASET_ID"
 
-          curl -s "https://api.apify.com/v2/datasets/$DATASET_ID/items" \
-            -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" \
+          curl -s "https://api.apify.com/v2/datasets/$DATASET_ID/items?token=${{ secrets.APIFY_TOKEN }}" \
             -o raw_tweets.json
 
           echo "Downloaded $(cat raw_tweets.json | jq length) tweets"
