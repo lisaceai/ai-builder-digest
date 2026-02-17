@@ -1,0 +1,124 @@
+name: Daily AI Builder Digest
+
+on:
+  schedule:
+    # 北京时间 12:00 = UTC 4:00
+    - cron: '0 4 * * *'
+  # 允许手动触发
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Trigger Apify Actor
+        id: apify
+        run: |
+          # 读取用户列表
+          USERS=$(cat config/users.json | jq -r '.ai_builders | join(",")')
+
+          # 触发Apify Actor
+          RESPONSE=$(curl -s -X POST "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs" \
+            -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"token\": \"${{ secrets.APIFY_TOKEN }}\",
+              \"users\": $(cat config/users.json | jq -r '.ai_builders'),
+              \"days_ago\": 1,
+              \"max_tweets_per_user\": 20,
+              \"cookie\": \"${{ secrets.X_COOKIE }}\"
+            }")
+
+          echo "Response: $RESPONSE"
+
+          # 获取运行ID
+          RUN_ID=$(echo $RESPONSE | jq -r '.data.id')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+          echo "Apify run started: $RUN_ID"
+
+      - name: Wait for Apify to complete
+        run: |
+          RUN_ID=${{ steps.apify.outputs.run_id }}
+          echo "Waiting for Apify run $RUN_ID to complete..."
+
+          MAX_WAIT=300
+          WAITED=0
+
+          while [ $WAITED -lt $MAX_WAIT ]; do
+            STATUS=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID" \
+              -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" | jq -r '.data.status')
+
+            echo "Current status: $STATUS"
+
+            if [ "$STATUS" = "SUCCEEDED" ]; then
+              echo succeeded "Apify run!"
+              break
+            elif [ "$STATUS" = "FAILED" ]; then
+              echo "Apify run failed!"
+              exit 1
+            fi
+
+            sleep 10
+            WAITED=$((WAITED + 10))
+          done
+
+          if [ $WAITED -ge $MAX_WAIT ]; then
+            echo "Timeout waiting for Apify!"
+            exit 1
+          fi
+
+      - name: Get Apify dataset
+        run: |
+          RUN_ID=${{ steps.apify.outputs.run_id }}
+
+          # 获取数据集ID
+          DATASET_ID=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID" \
+            -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" | jq -r '.data.defaultDatasetId')
+
+          echo "Dataset ID: $DATASET_ID"
+
+          # 下载数据
+          curl -s "https://api.apify.com/v2/datasets/$DATASET_ID/items" \
+            -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" \
+            -o raw_tweets.json
+
+          echo "Downloaded $(cat raw_tweets.json | jq length) tweets"
+
+      - name: Generate AI summaries
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+        run: |
+          python scripts/summarize.py raw_tweets.json summarized_tweets.json
+
+      - name: Send email
+        env:
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_SMTP_HOST: ${{ secrets.EMAIL_SMTP_HOST }}
+          EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
+        run: |
+          python scripts/send_email.py summarized_tweets.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-archive
+          path: |
+            raw_tweets.json
+            summarized_tweets.json
+          retention-days: 7
