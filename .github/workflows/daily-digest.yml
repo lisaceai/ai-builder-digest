@@ -25,19 +25,26 @@ jobs:
       - name: Trigger Apify Actor
         id: apify
         run: |
-          RESPONSE=$(curl -s -X POST "https://api.apify.com/v2/actors/${{ secrets.APIFY_ACTOR_ID }}/runs" \
+          echo "Actor ID: ${{ secrets.APIFY_ACTOR_ID }}"
+          echo "Token: ${APIFY_TOKEN:0:10}..."
+
+          USERS=$(cat config/users.json | jq -r '.ai_builders | join(",")')
+          echo "Users: $USERS"
+
+          curl -v -X POST "https://api.apify.com/v2/actors/${{ secrets.APIFY_ACTOR_ID }}/runs" \
             -H "Authorization: Apify ${{ secrets.APIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{
-              \"users\": $(cat config/users.json | jq -r '.ai_builders'),
+              \"users\": [\"sarah_chen_ai\"],
               \"days_ago\": 1,
-              \"max_tweets_per_user\": 20,
+              \"max_tweets_per_user\": 5,
               \"cookie\": \"${{ secrets.X_COOKIE }}\"
-            }")
+            }" 2>&1 | tee curl_output.txt
 
+          RESPONSE=$(cat curl_output.txt | grep -A100 "^{" | head -20)
           echo "Response: $RESPONSE"
 
-          RUN_ID=$(echo $RESPONSE | jq -r '.data.id')
+          RUN_ID=$(echo "$RESPONSE" | jq -r '.data.id // .error.message')
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
 
           echo "Apify run started: $RUN_ID"
