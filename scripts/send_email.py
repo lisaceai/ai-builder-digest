@@ -68,10 +68,12 @@ def generate_email_content(tweets):
 
     content = '\n'.join(cards)
 
-    return template.format(
-        date=datetime.now().strftime('%Y-%m-%d'),
-        content=content,
-        count=len(tweets)
+    return template.replace(
+        '{date}', datetime.now().strftime('%Y-%m-%d')
+    ).replace(
+        '{content}', content
+    ).replace(
+        '{count}', str(len(tweets))
     )
 
 
