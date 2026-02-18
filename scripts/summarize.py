@@ -48,7 +48,9 @@ def generate_summary(tweet_text, api_key, model='glm-4.7-flash'):
 
     except Exception as e:
         print(f"Error generating summary: {e}")
-        return "（摘要生成失败）"
+        import traceback
+        traceback.print_exc()
+        return f"（摘要生成失败: {str(e)}）"
 
 
 def generate_summaries(tweets, api_key):
