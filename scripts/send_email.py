@@ -128,16 +128,32 @@ def generate_email_content(tweets):
             else:
                 text_html = f'<div class="original">原文: {text}</div>'
 
+            # 格式化时间：月/日 小时:分，24小时制
+            datetime_str = tweet.get('datetime', '')
+            if datetime_str:
+                datetime_clean = datetime_str.replace('Z', '').replace('+0000', '').strip()
+                dt_part = datetime_clean.replace('T', ' ').split('.')[0] if datetime_clean else ''
+                parts = dt_part.split(' ')
+                if len(parts) >= 2:
+                    # 格式: 02/18 14:30
+                    date_part = parts[0][5:] if len(parts[0]) > 5 else parts[0]  # MM-DD
+                    date_formatted = date_part.replace('-', '/')  # 改成 MM/DD
+                    time_part = parts[1][:5]  # HH:MM
+                    time_inline = f"{date_formatted} {time_part}"
+                else:
+                    time_inline = ''
+            else:
+                time_inline = ''
+
             # 使用用户名代替作者
             username = tweet.get('username', 'unknown')
 
             card = f'''
         <div class="card">
-            <div class="username">@{username}</div>
-            <div class="time">{time_formatted}</div>
+            <div class="username">@{username} · {time_inline}</div>
             <div class="summary">📝 {tweet.get('summary', '')}</div>
             {text_html}
-            <a href="{tweet.get('url', '#')}" class="link">查看原文</a>
+            <a href="{tweet.get('url', '#')}" class="link" style="color:white;">查看原文</a>
         </div>'''
             cards.append(card)
 
