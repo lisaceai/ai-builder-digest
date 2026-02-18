@@ -113,20 +113,33 @@ def generate_email_content(tweets):
 
             # 格式化时间：月/日 小时:分，24小时制
             datetime_str = tweet.get('datetime', '')
+            time_inline = ''
             if datetime_str:
-                datetime_clean = datetime_str.replace('Z', '').replace('+0000', '').strip()
-                dt_part = datetime_clean.replace('T', ' ').split('.')[0] if datetime_clean else ''
-                parts = dt_part.split(' ')
-                if len(parts) >= 2:
-                    # 格式: 02/18 14:30
-                    date_part = parts[0][5:] if len(parts[0]) > 5 else parts[0]  # MM-DD
-                    date_formatted = date_part.replace('-', '/')  # 改成 MM/DD
-                    time_part = parts[1][:5]  # HH:MM
-                    time_inline = f"{date_formatted} {time_part}"
+                # 两种格式：
+                # 1. ISO: 2026-02-18T12:30:00.000Z
+                # 2. Twitter: Wed Feb 18 15:07:28 +0000 2026
+                import re
+                # 尝试匹配 Twitter 格式: "Wed Feb 18 15:07:28 +0000 2026"
+                match = re.match(r'\w+ (\w+) (\d+) (\d+):(\d+):\d+', datetime_str)
+                if match:
+                    month_map = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+                                 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+                                 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'}
+                    month = month_map.get(match.group(1), '01')
+                    day = match.group(2).zfill(2)
+                    hour = match.group(3)
+                    minute = match.group(4)
+                    time_inline = f"{month}/{day} {hour}:{minute}"
                 else:
-                    time_inline = ''
-            else:
-                time_inline = ''
+                    # 尝试 ISO 格式
+                    datetime_clean = datetime_str.replace('Z', '').replace('+0000', '').strip()
+                    dt_part = datetime_clean.replace('T', ' ').split('.')[0] if datetime_clean else ''
+                    parts = dt_part.split(' ')
+                    if len(parts) >= 2:
+                        date_part = parts[0][5:] if len(parts[0]) > 5 else parts[0]  # MM-DD
+                        date_formatted = date_part.replace('-', '/')  # 改成 MM/DD
+                        time_part = parts[1][:5]  # HH:MM
+                        time_inline = f"{date_formatted} {time_part}"
 
             # 使用用户名代替作者
             username = tweet.get('username', 'unknown')
