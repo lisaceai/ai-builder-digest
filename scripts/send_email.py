@@ -102,23 +102,6 @@ def generate_email_content(tweets):
     for author in sorted_authors:
         author_tweets = authors[author]
         for tweet in author_tweets:
-            # 格式化时间，只显示月-日 时:分，去掉年份
-            datetime_str = tweet.get('datetime', '')
-            if datetime_str:
-                # 格式: 2026-02-18T12:30:00.000Z -> 02-18 12:30
-                datetime_clean = datetime_str.replace('Z', '').replace('+0000', '').replace('+0000 ', '').strip()
-                dt_part = datetime_clean.replace('T', ' ').split('.')[0] if datetime_clean else ''
-                # 只取月-日 时:分
-                parts = dt_part.split(' ')
-                if len(parts) >= 2:
-                    date_part = parts[0][5:] if len(parts[0]) > 5 else parts[0]  # 去掉年份
-                    time_part = parts[1][:5] if len(parts[1]) > 5 else parts[1]  # 只取时:分
-                    time_formatted = f"{date_part} {time_part}"
-                else:
-                    time_formatted = ''
-            else:
-                time_formatted = ''
-
             # 原文超过350字折叠
             text = tweet.get('text', '')
             if len(text) > 350:
@@ -150,7 +133,8 @@ def generate_email_content(tweets):
 
             card = f'''
         <div class="card">
-            <div class="username">@{username} · {time_inline}</div>
+            <div class="username">@{username}</div>
+            <div class="time">{time_inline}</div>
             <div class="summary">📝 {tweet.get('summary', '')}</div>
             {text_html}
             <a href="{tweet.get('url', '#')}" class="link" style="color:white;">查看原文</a>
