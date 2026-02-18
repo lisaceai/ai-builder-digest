@@ -56,15 +56,35 @@ def generate_summaries(tweets, api_key):
     results = []
 
     for tweet in tweets:
-        summary = generate_summary(tweet['text'], api_key)
+        # 处理不同 actor 返回的字段名
+        text = tweet.get('full_text') or tweet.get('text', '')
+
+        # 获取用户名
+        username = ''
+        if 'user' in tweet:
+            user = tweet.get('user', {})
+            if 'legacy' in user:
+                username = user['legacy'].get('screen_name', '')
+            else:
+                username = user.get('screen_name', '')
+        else:
+            username = tweet.get('username', '')
+
+        # 获取时间
+        datetime = tweet.get('created_at', '') or tweet.get('datetime', '')
+
+        # 获取URL
+        url = tweet.get('url', '')
+
+        summary = generate_summary(text, api_key)
 
         result = {
-            'id': tweet.get('id', ''),
-            'url': tweet.get('url', ''),
-            'text': tweet.get('text', ''),
+            'id': tweet.get('id', tweet.get('id_str', '')),
+            'url': url,
+            'text': text,
             'summary': summary,
-            'username': tweet.get('username', ''),
-            'datetime': tweet.get('datetime', '')
+            'username': username,
+            'datetime': datetime
         }
 
         results.append(result)
