@@ -102,21 +102,28 @@ def generate_email_content(tweets):
     for author in sorted_authors:
         author_tweets = authors[author]
         for tweet in author_tweets:
-            # 格式化时间，只显示日期和时间，去掉时区
+            # 格式化时间，只显示月-日 时:分，去掉年份
             datetime_str = tweet.get('datetime', '')
             if datetime_str:
-                # 格式: 2026-02-18T12:30:00.000Z -> 2026-02-18 12:30:00
-                # 先去除Z和时区信息
+                # 格式: 2026-02-18T12:30:00.000Z -> 02-18 12:30
                 datetime_clean = datetime_str.replace('Z', '').replace('+0000', '').replace('+0000 ', '').strip()
-                time_formatted = datetime_clean.replace('T', ' ').split('.')[0] if datetime_clean else ''
+                dt_part = datetime_clean.replace('T', ' ').split('.')[0] if datetime_clean else ''
+                # 只取月-日 时:分
+                parts = dt_part.split(' ')
+                if len(parts) >= 2:
+                    date_part = parts[0][5:] if len(parts[0]) > 5 else parts[0]  # 去掉年份
+                    time_part = parts[1][:5] if len(parts[1]) > 5 else parts[1]  # 只取时:分
+                    time_formatted = f"{date_part} {time_part}"
+                else:
+                    time_formatted = ''
             else:
                 time_formatted = ''
 
-            # 原文超过400字折叠
+            # 原文超过350字折叠
             text = tweet.get('text', '')
-            if len(text) > 400:
+            if len(text) > 350:
                 # 智能找到句子边界进行折叠
-                text_visible, text_hidden = find_sentence_boundary(text, 400)
+                text_visible, text_hidden = find_sentence_boundary(text, 350)
                 text_html = f'<div class="original">原文: {text_visible}<span style="color:#999;">（已折叠）</span></div>'
             else:
                 text_html = f'<div class="original">原文: {text}</div>'
