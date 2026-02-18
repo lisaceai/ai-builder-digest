@@ -42,7 +42,13 @@ def generate_summary(tweet_text, api_key, model='glm-4.6V'):
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=800
+            max_tokens=800,
+            # 禁用思考模型，强制直接输出
+            extra_body={
+                "thinking": {
+                    "type": "disabled"
+                }
+            }
         )
 
         summary = response.choices[0].message.content.strip()
