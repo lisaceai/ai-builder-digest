@@ -10,10 +10,17 @@ from openai import OpenAI
 
 
 # 默认Prompt模板
-SUMMARY_PROMPT = """把以下推文改成5句话左右的中文，不要出现"该推文"、"该作者"、"摘要："等词语，直接给出简洁的总结。
+SUMMARY_PROMPT = """请用5句话左右总结以下推文，直接给出简洁的摘要，不要有任何思考过程、步骤说明或格式。
+
+要求：
+1. 保留关键信息（产品名称、技术概念、观点）
+2. 如果是对话/回复，尽量补充上下文背景
+3. 避免“该推文"、该作者"、摘要："等词语
 
 推文内容：
-{tweet_text}"""
+{tweet_text}
+
+摘要："""
 
 
 def generate_summary(tweet_text, api_key, model='glm-4.6V'):
