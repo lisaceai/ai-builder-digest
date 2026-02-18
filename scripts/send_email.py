@@ -73,23 +73,17 @@ def generate_email_content(tweets):
     for author in sorted_authors:
         author_tweets = authors[author]
         for tweet in author_tweets:
-            # 格式化时间
+            # 格式化时间，只显示日期和时间，去掉时区
             datetime_str = tweet.get('datetime', '')
-            time_formatted = datetime_str.replace('T', ' ').replace('Z', '') if datetime_str else ''
-
-            # 处理原文折叠
-            text = tweet.get('text', '')
-            if len(text) > 100:
-                truncated_text = text[:100] + '...'
-                text_html = f'''
-            <div class="original">
-                <div class="original-truncated">原文: {truncated_text}</div>
-                <div class="original-full" style="display:none;">原文: {text}</div>
-                <button class="toggle-btn" onclick="toggleOriginal(this)">展开原文</button>
-            </div>'''
+            if datetime_str:
+                # 格式: 2026-02-18T12:30:00.000Z -> 2026-02-18 12:30:00
+                time_formatted = datetime_str.replace('T', ' ').split('.')[0] if datetime_str else ''
             else:
-                text_html = f'''
-            <div class="original">原文: {text}</div>'''
+                time_formatted = ''
+
+            # 原文直接显示完整内容
+            text = tweet.get('text', '')
+            text_html = f'<div class="original">原文: {text}</div>'
 
             card = f'''
         <div class="card">

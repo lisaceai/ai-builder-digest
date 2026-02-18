@@ -14,35 +14,17 @@
         .time { font-size: 12px; color: #999; margin-bottom: 5px; }
         .summary { font-size: 15px; margin: 10px 0; color: #222; }
         .original { font-size: 13px; color: #666; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; line-height: 1.5; }
-        .original-full { display: none; }
-        .original-truncated.hidden { display: none; }
         .toggle-btn { background: none; border: none; color: #667eea; cursor: pointer; font-size: 13px; padding: 0; margin-top: 5px; text-decoration: underline; }
         .link { display: inline-block; background: #667eea; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-size: 13px; margin-top: 8px; }
         .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
     </style>
-    <script>
-        function toggleOriginal(btn) {
-            var fullText = btn.previousElementSibling;
-            var truncatedText = btn.previousElementSibling.previousElementSibling;
-            if (fullText.style.display === 'none') {
-                fullText.style.display = 'block';
-                truncatedText.style.display = 'none';
-                btn.textContent = '收起原文';
-            } else {
-                fullText.style.display = 'none';
-                truncatedText.style.display = 'block';
-                btn.textContent = '展开原文';
-            }
-        }
-    </script>
 </head>
 <body>
     <div class="header">
         <h1>🤖 Hiiii😃 Here is the AI daily for you</h1>
         <p class="greeting">{date}</p>
     </div>
-
-    {content}
+{content}
 
     <div class="footer">
         <p>共 {count} 条推文 | 由AI Builder Digest自动生成</p>
