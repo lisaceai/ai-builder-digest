@@ -21,7 +21,7 @@ SUMMARY_PROMPT = """你是一个AI技术推文分析师。请用3句话左右总
 摘要："""
 
 
-def generate_summary(tweet_text, api_key, model='glm-4.7-flash'):
+def generate_summary(tweet_text, api_key, model='glm-4.6V'):
     """生成单条推文的摘要"""
     if not tweet_text or not tweet_text.strip():
         return "（空推文）"
