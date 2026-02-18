@@ -77,15 +77,28 @@ def generate_email_content(tweets):
             datetime_str = tweet.get('datetime', '')
             time_formatted = datetime_str.replace('T', ' ').replace('Z', '') if datetime_str else ''
 
-            card = f"""
+            # 处理原文折叠
+            text = tweet.get('text', '')
+            if len(text) > 100:
+                truncated_text = text[:100] + '...'
+                text_html = f'''
+            <div class="original">
+                <div class="original-truncated">原文: {truncated_text}</div>
+                <div class="original-full" style="display:none;">原文: {text}</div>
+                <button class="toggle-btn" onclick="toggleOriginal(this)">展开原文</button>
+            </div>'''
+            else:
+                text_html = f'''
+            <div class="original">原文: {text}</div>'''
+
+            card = f'''
         <div class="card">
             <div class="username">@{tweet.get('username', 'unknown')}</div>
             <div class="time">{time_formatted}</div>
             <div class="summary">📝 {tweet.get('summary', '')}</div>
-            <div class="original">原文: {tweet.get('text', '')}</div>
+            {text_html}
             <a href="{tweet.get('url', '#')}" class="link">查看原文 →</a>
-        </div>
-        """
+        </div>'''
             cards.append(card)
 
     content = '\n'.join(cards)
