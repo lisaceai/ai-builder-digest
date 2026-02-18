@@ -31,18 +31,16 @@ jobs:
           YESTERDAY=$(date -u -d "1 day ago" +%Y-%m-%d)
           TODAY=$(date -u +%Y-%m-%d)
 
-          # 构建 URL 列表
-          URLs=$(echo "$USERS" | jq -r '.[]' | while read user; do echo "https://x.com/$user"; done | jq -Rs 'split("\n")[:-1]')
+          # 构建 URL 列表 (正确的格式)
+          URLS_JSON=$(echo "$USERS" | jq -r '.[]' | while read user; do echo "{\"url\": \"https://x.com/$user\"}"; done | jq -s '.')
 
           PAYLOAD=$(jq -n \
-            --argjson urls "$URLs" \
+            --argjson urls "$URLS_JSON" \
             --arg since "$YESTERDAY" \
-            --arg until "$TODAY" \
             '{
-              "startUrls": $urls,
-              "sinceDate": $since,
-              "untilDate": $until,
-              "resultCountLimit": 20
+              "start_urls": $urls,
+              "since_date": $since,
+              "result_count": "20"
             }')
 
           echo "Since: $YESTERDAY, Until: $TODAY"

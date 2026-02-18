@@ -10,10 +10,11 @@ from openai import OpenAI
 
 
 # 默认Prompt模板
-SUMMARY_PROMPT = """你是一个AI技术推文分析师。请用3句话左右总结以下推文，要求：
-1. 简洁明了，概括核心内容
-2. 保留关键信息（产品名、技术概念、观点）
-3. 如果是对话/回复，尽量补充上下文背景
+SUMMARY_PROMPT = """请用5句话左右总结以下推文，直接给出简洁的摘要，不要有任何思考过程、步骤说明或格式。
+
+要求：
+1. 保留关键信息（产品名称、技术概念、观点）
+2. 如果是对话/回复，尽量补充上下文背景
 
 推文内容：
 {tweet_text}
@@ -41,10 +42,14 @@ def generate_summary(tweet_text, api_key, model='glm-4.6V'):
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=150
+            max_tokens=800
         )
 
         summary = response.choices[0].message.content.strip()
+        # 如果 content 为空，尝试使用 reasoning_content
+        if not summary and hasattr(response.choices[0].message, 'reasoning_content'):
+            summary = response.choices[0].message.reasoning_content.strip()
+        print(f"Generated summary: {summary[:50]}...")  # 添加日志
         return summary
 
     except Exception as e:
@@ -58,9 +63,12 @@ def generate_summaries(tweets, api_key):
     """为所有推文生成摘要"""
     results = []
 
-    for tweet in tweets:
+    print(f"Processing {len(tweets)} tweets...")
+
+    for i, tweet in enumerate(tweets):
         # 处理不同 actor 返回的字段名
         text = tweet.get('full_text') or tweet.get('text', '')
+        print(f"Tweet {i+1}: {text[:80]}...")  # 添加日志
 
         # 获取用户名
         username = ''
