@@ -1,8 +1,8 @@
 name: Daily AI Builder Digest
 
 on:
-  schedule:
-    - cron: '0 4 * * *'
+  # schedule:
+  #   - cron: '0 4 * * *'
   workflow_dispatch:
 
 jobs:
@@ -27,17 +27,30 @@ jobs:
         run: |
           USERS=$(jq -c '.ai_builders' config/users.json)
 
+          # 计算前一天日期 (YYYY-MM-DD格式)
+          YESTERDAY=$(date -u -v-1d +%Y-%m-%d)
+          TODAY=$(date -u +%Y-%m-%d)
+
+          # 构建 URL 列表
+          URLs=$(echo "$USERS" | jq -r '.[]' | while read user; do echo "https://x.com/$user"; done | jq -Rs 'split("\n")[:-1]')
+
           PAYLOAD=$(jq -n \
-            --argjson users "$USERS" \
-            --arg cookie "${{ secrets.X_COOKIE }}" \
+            --argjson urls "$URLs" \
+            --arg since "$YESTERDAY" \
+            --arg until "$TODAY" \
             '{
-              "users": $users,
-              "days_ago": 1,
-              "max_tweets_per_user": 5,
-              "cookie": $cookie
+              "startUrls": $urls,
+              "sinceDate": $since,
+              "untilDate": $until,
+              "resultCountLimit": 20
             }')
 
-          RESPONSE=$(curl -s -X POST "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs?token=${{ secrets.APIFY_TOKEN }}" \
+          echo "Since: $YESTERDAY, Until: $TODAY"
+          echo "Payload: $PAYLOAD"
+
+          APIFY_ACTOR_ID=gentle_cloud/twitter-tweets-scraper
+
+          RESPONSE=$(curl -s -X POST "https://api.apify.com/v2/acts/$APIFY_ACTOR_ID/runs?token=${{ secrets.APIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
 
@@ -62,7 +75,7 @@ jobs:
           WAITED=0
 
           while [ $WAITED -lt $MAX_WAIT ]; do
-            STATUS=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
+            STATUS=$(curl -s "https://api.apify.com/v2/acts/gentle_cloud/twitter-tweets-scraper/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
               | jq -r '.data.status')
 
             echo "Current status: $STATUS"
@@ -88,7 +101,7 @@ jobs:
         run: |
           RUN_ID=${{ steps.apify.outputs.run_id }}
 
-          DATASET_ID=$(curl -s "https://api.apify.com/v2/acts/${{ secrets.APIFY_ACTOR_ID }}/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
+          DATASET_ID=$(curl -s "https://api.apify.com/v2/acts/gentle_cloud/twitter-tweets-scraper/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
             | jq -r '.data.defaultDatasetId')
 
           echo "Dataset ID: $DATASET_ID"
