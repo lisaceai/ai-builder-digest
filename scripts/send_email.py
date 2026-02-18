@@ -81,12 +81,16 @@ def generate_email_content(tweets):
             else:
                 time_formatted = ''
 
-            # 原文用 details/summary 实现折叠
+            # 原文超过400字折叠
             text = tweet.get('text', '')
-            text_html = f'''<details>
-                <summary style="cursor:pointer;color:#667eea;font-size:13px;">原文 (点击展开)</summary>
+            if len(text) > 400:
+                text_truncated = text[:400]
+                text_html = f'''<details>
+                <summary style="cursor:pointer;color:#667eea;font-size:13px;">展开原文</summary>
                 <div class="original" style="margin-top:5px;">{text}</div>
             </details>'''
+            else:
+                text_html = f'<div class="original">原文: {text}</div>'
 
             card = f'''
         <div class="card">
