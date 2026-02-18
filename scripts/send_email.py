@@ -54,17 +54,39 @@ def generate_email_content(tweets):
     """生成邮件内容"""
     template = load_email_template()
 
-    cards = []
+    # 按作者分组
+    authors = {}
     for tweet in tweets:
-        card = f"""
+        author = tweet.get('username', 'unknown')
+        if author not in authors:
+            authors[author] = []
+        authors[author].append(tweet)
+
+    # 每组内按时间倒序（最新的在前）
+    for author in authors:
+        authors[author].sort(key=lambda t: t.get('datetime', ''), reverse=True)
+
+    # 按作者名排序
+    sorted_authors = sorted(authors.keys())
+
+    cards = []
+    for author in sorted_authors:
+        author_tweets = authors[author]
+        for tweet in author_tweets:
+            # 格式化时间
+            datetime_str = tweet.get('datetime', '')
+            time_formatted = datetime_str.replace('T', ' ').replace('Z', '') if datetime_str else ''
+
+            card = f"""
         <div class="card">
             <div class="username">@{tweet.get('username', 'unknown')}</div>
+            <div class="time">{time_formatted}</div>
             <div class="summary">📝 {tweet.get('summary', '')}</div>
-            <div class="original">原文: {tweet.get('text', '')[:200]}...</div>
+            <div class="original">原文: {tweet.get('text', '')}</div>
             <a href="{tweet.get('url', '#')}" class="link">查看原文 →</a>
         </div>
         """
-        cards.append(card)
+            cards.append(card)
 
     content = '\n'.join(cards)
 

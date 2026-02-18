@@ -1,8 +1,9 @@
 name: Daily AI Builder Digest
 
 on:
-  # schedule:
-  #   - cron: '0 4 * * *'
+  schedule:
+    # 北京时间每天12点 = UTC 4点
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 jobs:
