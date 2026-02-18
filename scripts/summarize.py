@@ -5,6 +5,7 @@ AI Summary Module
 
 import os
 import json
+import time
 from openai import OpenAI
 
 
@@ -79,6 +80,9 @@ def generate_summaries(tweets, api_key):
         url = tweet.get('url', '')
 
         summary = generate_summary(text, api_key)
+
+        # 添加延迟避免速率限制
+        time.sleep(1)
 
         result = {
             'id': tweet.get('id', tweet.get('id_str', '')),
