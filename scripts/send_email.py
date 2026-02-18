@@ -50,6 +50,35 @@ def load_email_template():
 </html>"""
 
 
+def find_sentence_boundary(text, max_length):
+    """
+    找到句子边界进行折叠
+    如果max_length在句子中间，找到下一个句号/问号/感叹号位置
+    """
+    if len(text) <= max_length:
+        return text, ""
+
+    # 截取到指定长度
+    truncated = text[:max_length]
+
+    # 查找句子结束标志：。！？.!? 以及它们的组合
+    sentence_endings = ['。', '！', '？', '.', '!', '?']
+    last_end = -1
+
+    # 从截断位置往后找句子边界
+    for i in range(max_length, len(text)):
+        if text[i] in sentence_endings:
+            last_end = i
+            break
+
+    if last_end > max_length:
+        # 找到了句子边界，在句子结束处折叠
+        return text[:last_end+1], text[last_end+1:]
+    else:
+        # 没找到句子边界，直接在max_length处折叠
+        return truncated, text[max_length:]
+
+
 def generate_email_content(tweets):
     """生成邮件内容"""
     template = load_email_template()
@@ -77,28 +106,31 @@ def generate_email_content(tweets):
             datetime_str = tweet.get('datetime', '')
             if datetime_str:
                 # 格式: 2026-02-18T12:30:00.000Z -> 2026-02-18 12:30:00
-                time_formatted = datetime_str.replace('T', ' ').split('.')[0] if datetime_str else ''
+                # 先去除Z和时区信息
+                datetime_clean = datetime_str.replace('Z', '').replace('+0000', '').replace('+0000 ', '').strip()
+                time_formatted = datetime_clean.replace('T', ' ').split('.')[0] if datetime_clean else ''
             else:
                 time_formatted = ''
 
             # 原文超过400字折叠
             text = tweet.get('text', '')
             if len(text) > 400:
-                text_truncated = text[:400]
-                text_html = f'''<details>
-                <summary style="cursor:pointer;color:#667eea;font-size:13px;">展开原文</summary>
-                <div class="original" style="margin-top:5px;">{text}</div>
-            </details>'''
+                # 智能找到句子边界进行折叠
+                text_visible, text_hidden = find_sentence_boundary(text, 400)
+                text_html = f'<div class="original">原文: {text_visible}<span style="color:#999;">（已折叠）</span></div>'
             else:
                 text_html = f'<div class="original">原文: {text}</div>'
 
+            # 使用用户名代替作者
+            username = tweet.get('username', 'unknown')
+
             card = f'''
         <div class="card">
-            <div class="username">@{tweet.get('username', 'unknown')}</div>
+            <div class="username">@{username}</div>
             <div class="time">{time_formatted}</div>
             <div class="summary">📝 {tweet.get('summary', '')}</div>
             {text_html}
-            <a href="{tweet.get('url', '#')}" class="link">查看原文 →</a>
+            <a href="{tweet.get('url', '#')}" class="link">查看原文</a>
         </div>'''
             cards.append(card)
 
