@@ -81,9 +81,12 @@ def generate_email_content(tweets):
             else:
                 time_formatted = ''
 
-            # 原文直接显示完整内容
+            # 原文用 details/summary 实现折叠
             text = tweet.get('text', '')
-            text_html = f'<div class="original">原文: {text}</div>'
+            text_html = f'''<details>
+                <summary style="cursor:pointer;color:#667eea;font-size:13px;">原文 (点击展开)</summary>
+                <div class="original" style="margin-top:5px;">{text}</div>
+            </details>'''
 
             card = f'''
         <div class="card">
