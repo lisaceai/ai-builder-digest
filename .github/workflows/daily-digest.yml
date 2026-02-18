@@ -48,7 +48,7 @@ jobs:
           echo "Since: $YESTERDAY, Until: $TODAY"
           echo "Payload: $PAYLOAD"
 
-          APIFY_ACTOR_ID=gentle_cloud/twitter-tweets-scraper
+          APIFY_ACTOR_ID=gentle_cloud~twitter-tweets-scraper
 
           RESPONSE=$(curl -s -X POST "https://api.apify.com/v2/acts/$APIFY_ACTOR_ID/runs?token=${{ secrets.APIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
@@ -75,7 +75,7 @@ jobs:
           WAITED=0
 
           while [ $WAITED -lt $MAX_WAIT ]; do
-            STATUS=$(curl -s "https://api.apify.com/v2/acts/gentle_cloud/twitter-tweets-scraper/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
+            STATUS=$(curl -s "https://api.apify.com/v2/acts/gentle_cloud~twitter-tweets-scraper/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
               | jq -r '.data.status')
 
             echo "Current status: $STATUS"
@@ -101,7 +101,7 @@ jobs:
         run: |
           RUN_ID=${{ steps.apify.outputs.run_id }}
 
-          DATASET_ID=$(curl -s "https://api.apify.com/v2/acts/gentle_cloud/twitter-tweets-scraper/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
+          DATASET_ID=$(curl -s "https://api.apify.com/v2/acts/gentle_cloud~twitter-tweets-scraper/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
             | jq -r '.data.defaultDatasetId')
 
           echo "Dataset ID: $DATASET_ID"
