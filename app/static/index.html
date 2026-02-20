@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builder 管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            color: white;
+            padding: 24px 30px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .header p {
+            opacity: 0.8;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .add-form {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .add-form input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .add-form input:focus {
+            outline: none;
+            border-color: #06b6d4;
+        }
+        .add-form button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .add-form button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+        }
+        .builder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 360px;
+            overflow-y: auto;
+        }
+        .builder-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .builder-item:hover {
+            background: #f3f4f6;
+        }
+        .builder-item .name {
+            font-size: 15px;
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .builder-item .delete-btn {
+            padding: 6px 12px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .builder-item .delete-btn:hover {
+            background: #fecaca;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1f2937;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .toast.success {
+            background: #10b981;
+        }
+        .toast.error {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🤖 AI Builder 管理</h1>
+                <p>管理你关注的 AI Builder 列表</p>
+            </div>
+            <div class="content">
+                <div class="add-form">
+                    <input type="text" id="newBuilder" placeholder="输入 Twitter 用户名..." onkeypress="handleKeyPress(event)">
+                    <button onclick="addBuilder()">添加</button>
+                </div>
+                <div class="builder-list" id="builderList">
+                    <!-- Builder 列表将在这里渲染 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let builders = [];
+
+        // 加载 builders
+        async function loadBuilders() {
+            try {
+                const res = await fetch('/api/users');
+                const data = await res.json();
+                builders = data.ai_builders || [];
+                render();
+            } catch (e) {
+                showToast('加载失败: ' + e.message, 'error');
+            }
+        }
+
+        // 渲染列表
+        function render() {
+            const list = document.getElementById('builderList');
+            if (builders.length === 0) {
+                list.innerHTML = '<div class="empty-state">暂无关注的 Builder</div>';
+                return;
+            }
+            list.innerHTML = builders.map((name, i) => `
+                <div class="builder-item">
+                    <span class="name">@${name}</span>
+                    <button class="delete-btn" onclick="deleteBuilder(${i})">删除</button>
+                </div>
+            `).join('');
+        }
+
+        // 添加 builder
+        async function addBuilder() {
+            const input = document.getElementById('newBuilder');
+            const name = input.value.trim();
+            if (!name) return;
+
+            if (builders.includes(name)) {
+                showToast('该用户已存在', 'error');
+                return;
+            }
+
+            builders.push(name);
+            input.value = '';
+            await save();
+        }
+
+        // 删除 builder
+        async function deleteBuilder(index) {
+            builders.splice(index, 1);
+            await save();
+        }
+
+        // 保存到后端
+        async function save() {
+            try {
+                const res = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ai_builders: builders})
+                });
+                if (res.ok) {
+                    showToast('保存成功', 'success');
+                    render();
+                } else {
+                    showToast('保存失败', 'error');
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message, 'error');
+            }
+        }
+
+        // 回车添加
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') addBuilder();
+        }
+
+        // 显示提示
+        function showToast(msg, type = '') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => toast.className = 'toast', 2500);
+        }
+
+        // 初始化
+        loadBuilders();
+    </script>
+</body>
+</html>
