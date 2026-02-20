@@ -5,7 +5,7 @@
 ## 功能
 
 - 🤖 自动抓取指定用户的X推文
-- 📝 AI生成摘要（使用智谱 GLM-4.7-flash）
+- 📝 AI生成摘要（使用智谱 GLM-4.6V）
 - 📧 每天定时发送到邮箱
 - ☁️ 基于GitHub Actions + Apify，无需服务器
 
@@ -14,9 +14,8 @@
 ### 1. 配置Apify
 
 1. 注册 [Apify](https://apify.com)
-2. 创建一个新的Actor，选择 "Hello world" Python模板
-3. 将 `apify/actor/` 目录下的代码上传到Actor
-4. 获取Actor ID和API Token
+2. 使用现成的 Twitter Scraper Actor：`gentle_cloud~twitter-tweets-scraper`
+3. 获取 API Token
 
 ### 2. 配置GitHub Secrets
 
@@ -24,9 +23,7 @@
 
 | Secret | 说明 |
 |--------|------|
-| `APIFY_ACTOR_ID` | Apify Actor ID |
 | `APIFY_TOKEN` | Apify API Token |
-| `X_COOKIE` | X.com Cookie（用于登录） |
 | `ZHIPU_API_KEY` | 智谱AI API Key |
 | `EMAIL_FROM` | 发件人邮箱 |
 | `EMAIL_PASSWORD` | 邮箱密码或App密码 |
@@ -51,7 +48,7 @@
 
 ### 4. 启用GitHub Actions
 
-推送代码到GitHub后，Actions会自动在每天UTC 4:00（北京时间12:00）运行。
+推送代码到GitHub后，Actions会自动在每天UTC 2:30（北京时间10:30）运行。
 
 也可以手动触发：进入Actions > Daily AI Builder Digest > Run workflow
 
@@ -70,7 +67,6 @@ python scripts/send_email.py summarized_tweets.json
 
 ## 注意事项
 
-- Cookie可能过期，需要定期更新
 - GitHub Actions每月有2000分钟免费额度
 - Apify有免费credits，初期够用
 - 智谱AI API按调用付费
@@ -79,10 +75,6 @@ python scripts/send_email.py summarized_tweets.json
 
 ```
 .
-├── apify/
-│   └── actor/               # Apify Actor代码
-│       ├── __main__.py
-│       └── requirements.txt
 ├── .github/
 │   └── workflows/
 │       └── daily-digest.yml
