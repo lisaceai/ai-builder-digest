@@ -8,6 +8,7 @@
 - 📝 AI生成摘要（使用智谱 GLM-4.6V）
 - 📧 每天定时发送到邮箱
 - ☁️ 基于GitHub Actions + Apify，无需服务器
+- 🌐 Web界面管理关注的 Builder 列表
 
 ## 快速开始
 
@@ -65,6 +66,19 @@ python scripts/summarize.py sample_tweets.json
 python scripts/send_email.py summarized_tweets.json
 ```
 
+## 本地 Web 管理界面
+
+启动本地服务管理关注的 Builder 列表：
+
+```bash
+# 启动服务
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+然后访问 http://localhost:8000 （同一局域网设备可用电脑 IP 访问）
+
+保存后会自动推送到 GitHub，触发新的抓取任务。
+
 ## 注意事项
 
 - GitHub Actions每月有2000分钟免费额度
@@ -81,6 +95,10 @@ python scripts/send_email.py summarized_tweets.json
 ├── scripts/
 │   ├── summarize.py       # AI摘要生成
 │   └── send_email.py      # 邮件发送
+├── app/
+│   ├── main.py           # Web服务
+│   └── static/
+│       └── index.html     # 管理界面
 ├── config/
 │   ├── users.json         # AI builder列表
 │   └── settings.json      # 配置
