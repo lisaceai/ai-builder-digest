@@ -10,12 +10,12 @@ from openai import OpenAI
 
 
 # 默认Prompt模板
-SUMMARY_PROMPT = """请用2-3句话概括以下推文的核心内容，像对朋友转述那样自然直接。不要逐字翻译，而是抓住重点：发生了什么、为什么重要。
+SUMMARY_PROMPT = """请用2-5句话概括以下推文的核心内容，像对朋友那样转述自然直接，不要逐字翻译，而是抓住重点，发生了什么，为什么重要
 
 要求：
-1. 核心信息：产品/工具名称、技术概念、主要观点
-2. 如有专业术语需要简单解释
-3. 避免"该推文"、"作者"、"摘要"等词语
+1. 只描述推文中明确提到的信息，必要时对文中的专有名词进行解释，不要臆想任何背景、解释或推测
+2. 如果推文信息不足（如只有链接、只有图片、无实质内容），直接回复"信息不足，请查看推文原文"
+3. 避免"该推文"、"作者""摘要"等词语
 4. 不要用数字分点，保持自然叙述
 
 推文内容：
@@ -24,7 +24,32 @@ SUMMARY_PROMPT = """请用2-3句话概括以下推文的核心内容，像对朋
 概括："""
 
 
-def generate_summary(tweet_text, api_key, model='glm-4.6V'):
+def extract_full_text(tweet):
+    """提取完整的推文内容，包括转发和引用"""
+    text = tweet.get('full_text') or tweet.get('text', '')
+
+    # 处理转发 (retweeted_status)
+    if 'retweeted_status' in tweet:
+        rt = tweet['retweeted_status']
+        rt_text = rt.get('full_text') or rt.get('text', '')
+        # 用户可能添加了自己的评论
+        if text.startswith('RT @'):
+            # 纯转发，无个人评论
+            text = rt_text
+        else:
+            # 转发+评论，保留用户评论 + 原文
+            text = text + "\n\n转发原文：" + rt_text
+
+    # 处理引用 (quoted_status)
+    if 'quoted_status' in tweet:
+        qt = tweet['quoted_status']
+        qt_text = qt.get('full_text') or qt.get('text', '')
+        text = text + "\n\n引用原文：" + qt_text
+
+    return text.strip()
+
+
+def generate_summary(tweet_text, api_key, model='glm-4.7'):
     """生成单条推文的摘要"""
     if not tweet_text or not tweet_text.strip():
         return "（空推文）"
@@ -43,7 +68,7 @@ def generate_summary(tweet_text, api_key, model='glm-4.6V'):
                 {"role": "system", "content": "你是一个专业的AI技术推文分析师，擅长用简洁的语言概括推文要点。"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7,
+            temperature=0.5,
             max_tokens=800,
             # 禁用思考模型，强制直接输出
             extra_body={
@@ -74,8 +99,8 @@ def generate_summaries(tweets, api_key):
     print(f"Processing {len(tweets)} tweets...")
 
     for i, tweet in enumerate(tweets):
-        # 处理不同 actor 返回的字段名
-        text = tweet.get('full_text') or tweet.get('text', '')
+        # 使用 extract_full_text 提取完整推文内容（包括转发和引用）
+        text = extract_full_text(tweet)
         print(f"Tweet {i+1}: {text[:80]}...")  # 添加日志
 
         # 获取用户名
