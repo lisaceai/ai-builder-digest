@@ -1,0 +1,12 @@
+# ChromaDB 向量数据库（本地持久化，不提交到 Git）
+data/chroma_db/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# IDE
+.vscode/
+.idea/
