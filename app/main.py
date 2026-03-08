@@ -1,9 +1,14 @@
+import sys
+import os
+
+# 确保项目根目录在 Python 路径中
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import json
-import os
 import subprocess
 from pathlib import Path
 
@@ -16,6 +21,16 @@ CONFIG_FILE = BASE_DIR / "config" / "users.json"
 
 class UsersData(BaseModel):
     ai_builders: list[str]
+
+
+class QuestionRequest(BaseModel):
+    question: str
+    username: str | None = None
+    n_results: int = 5
+
+
+class BuilderAnalysisRequest(BaseModel):
+    username: str
 
 
 def read_users() -> UsersData:
@@ -37,22 +52,21 @@ def write_users(data: UsersData) -> None:
 def auto_push() -> bool:
     """自动提交并推送到 GitHub"""
     try:
-        # 添加文件
         subprocess.run(["git", "add", "config/users.json"], cwd=BASE_DIR, check=True)
-        # 提交
         subprocess.run(
             ["git", "commit", "-m", "更新关注的 AI Builder 列表"],
             cwd=BASE_DIR,
             check=True,
             capture_output=True
         )
-        # 推送
         subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, check=True)
         return True
     except subprocess.CalledProcessError as e:
         print(f"Auto push failed: {e}")
         return False
 
+
+# ==================== 原有接口 ====================
 
 @app.get("/")
 async def index():
@@ -71,12 +85,73 @@ async def save_users(data: UsersData):
     """保存用户列表"""
     try:
         write_users(data)
-        # 尝试自动推送
         pushed = auto_push()
         if pushed:
             return {"status": "success", "message": "保存成功，已推送到 GitHub"}
         else:
             return {"status": "success", "message": "保存成功（未自动推送）"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== RAG 接口 ====================
+
+@app.post("/api/rag/ask")
+async def rag_ask(req: QuestionRequest):
+    """RAG 问答接口"""
+    try:
+        from scripts.rag_qa import ask
+        result = ask(
+            question=req.question,
+            n_results=req.n_results,
+            username=req.username,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/rag/trends")
+async def rag_trends():
+    """趋势分析接口"""
+    try:
+        from scripts.rag_trends import analyze_trends
+        result = analyze_trends()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/rag/builder")
+async def rag_builder_analysis(req: BuilderAnalysisRequest):
+    """单个 Builder 分析接口"""
+    try:
+        from scripts.rag_trends import analyze_builder
+        result = analyze_builder(username=req.username)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/rag/stats")
+async def rag_stats():
+    """RAG 数据库统计"""
+    try:
+        from scripts.rag_store import get_collection
+        collection = get_collection()
+        count = collection.count()
+
+        # 统计各 builder 的推文数量
+        all_data = collection.get(include=["metadatas"])
+        builder_counts = {}
+        for meta in all_data["metadatas"]:
+            username = meta.get("username", "unknown")
+            builder_counts[username] = builder_counts.get(username, 0) + 1
+
+        return {
+            "total_tweets": count,
+            "builder_counts": builder_counts,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

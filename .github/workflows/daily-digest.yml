@@ -116,6 +116,12 @@ jobs:
         run: |
           python scripts/summarize.py raw_tweets.json summarized_tweets.json
 
+      - name: Ingest tweets into RAG database
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+        run: |
+          python scripts/rag_store.py summarized_tweets.json
+
       - name: Send email
         env:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
@@ -133,4 +139,5 @@ jobs:
           path: |
             raw_tweets.json
             summarized_tweets.json
+            data/chroma_db/
           retention-days: 7

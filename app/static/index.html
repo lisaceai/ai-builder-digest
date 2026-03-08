@@ -3,26 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Builder 管理</title>
+    <title>AI Builder Digest - RAG Assistant</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
             min-height: 100vh;
             padding: 40px 20px;
         }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
+        .container { max-width: 800px; margin: 0 auto; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
         }
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tab.active { background: white; color: #0ea5e9; }
+        .tab:hover:not(.active) { background: rgba(255,255,255,0.35); }
+
+        /* Card */
         .card {
             background: white;
-            border-radius: 16px;
+            border-radius: 0 16px 16px 16px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
         }
@@ -31,131 +46,208 @@
             color: white;
             padding: 24px 30px;
         }
-        .header h1 {
-            font-size: 24px;
-            font-weight: 600;
-        }
-        .header p {
-            opacity: 0.8;
-            margin-top: 8px;
-            font-size: 14px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .add-form {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header p { opacity: 0.8; margin-top: 8px; font-size: 14px; }
+        .content { padding: 30px; }
+
+        /* Panel visibility */
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* ========== Builder 管理 ========== */
+        .add-form { display: flex; gap: 12px; margin-bottom: 24px; }
         .add-form input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.2s;
+            flex: 1; padding: 12px 16px;
+            border: 2px solid #e5e7eb; border-radius: 8px;
+            font-size: 14px; transition: border-color 0.2s;
         }
-        .add-form input:focus {
-            outline: none;
-            border-color: #06b6d4;
-        }
-        .add-form button {
+        .add-form input:focus { outline: none; border-color: #06b6d4; }
+        .btn {
             padding: 12px 24px;
             background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
+            color: white; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        .add-form button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-        }
-        .builder-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 360px;
-            overflow-y: auto;
-        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(6,182,212,0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .builder-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
         .builder-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            background: #f9fafb;
-            border-radius: 8px;
-            transition: background 0.2s;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; background: #f9fafb; border-radius: 8px; transition: background 0.2s;
         }
-        .builder-item:hover {
-            background: #f3f4f6;
-        }
-        .builder-item .name {
-            font-size: 15px;
-            color: #1f2937;
-            font-weight: 500;
-        }
+        .builder-item:hover { background: #f3f4f6; }
+        .builder-item .name { font-size: 15px; color: #1f2937; font-weight: 500; }
         .builder-item .delete-btn {
-            padding: 6px 12px;
-            background: #fee2e2;
-            color: #dc2626;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
+            padding: 6px 12px; background: #fee2e2; color: #dc2626;
+            border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
         }
-        .builder-item .delete-btn:hover {
-            background: #fecaca;
+        .builder-item .delete-btn:hover { background: #fecaca; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #9ca3af; }
+
+        /* ========== RAG 问答 ========== */
+        .chat-container { display: flex; flex-direction: column; height: 500px; }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 10px 0;
+            display: flex; flex-direction: column; gap: 16px;
         }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #9ca3af;
+        .message { padding: 12px 16px; border-radius: 12px; max-width: 85%; line-height: 1.6; font-size: 14px; }
+        .message.user {
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            color: white; align-self: flex-end;
         }
+        .message.assistant { background: #f3f4f6; color: #1f2937; align-self: flex-start; }
+        .message.assistant .sources {
+            margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;
+        }
+        .message.assistant .sources a { color: #0ea5e9; text-decoration: none; }
+        .message.assistant .sources a:hover { text-decoration: underline; }
+        .chat-input {
+            display: flex; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;
+        }
+        .chat-input input {
+            flex: 1; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;
+        }
+        .chat-input input:focus { outline: none; border-color: #06b6d4; }
+        .filter-row {
+            display: flex; gap: 12px; margin-bottom: 12px; align-items: center; font-size: 13px; color: #6b7280;
+        }
+        .filter-row select {
+            padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px;
+        }
+        .typing-indicator { color: #9ca3af; font-style: italic; font-size: 13px; padding: 8px 0; }
+
+        /* ========== 趋势分析 ========== */
+        .trends-content {
+            line-height: 1.8; font-size: 14px; color: #374151;
+        }
+        .trends-content h3 { margin: 16px 0 8px; color: #0ea5e9; }
+        .trends-content strong { color: #1f2937; }
+        .trends-content ul { padding-left: 20px; }
+        .trends-content li { margin-bottom: 6px; }
+        .stats-bar {
+            display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .stat-card {
+            background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
+            padding: 14px 20px; flex: 1; min-width: 120px; text-align: center;
+        }
+        .stat-card .number { font-size: 28px; font-weight: 700; color: #0ea5e9; }
+        .stat-card .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+        .builder-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .builder-chip {
+            padding: 6px 14px; background: #f0f9ff; border: 1px solid #bae6fd;
+            border-radius: 20px; font-size: 13px; color: #0284c7; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .builder-chip:hover { background: #0ea5e9; color: white; }
+
+        /* Loading */
+        .loading {
+            text-align: center; padding: 40px; color: #9ca3af;
+        }
+        .spinner {
+            display: inline-block; width: 24px; height: 24px;
+            border: 3px solid #e5e7eb; border-top-color: #0ea5e9;
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
         .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
+            position: fixed; bottom: 30px; left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #1f2937;
-            color: white;
-            padding: 14px 28px;
-            border-radius: 8px;
-            font-size: 14px;
-            opacity: 0;
-            transition: transform 0.3s, opacity 0.3s;
+            background: #1f2937; color: white; padding: 14px 28px;
+            border-radius: 8px; font-size: 14px; opacity: 0;
+            transition: transform 0.3s, opacity 0.3s; z-index: 100;
         }
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-        .toast.success {
-            background: #10b981;
-        }
-        .toast.error {
-            background: #ef4444;
-        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { background: #10b981; }
+        .toast.error { background: #ef4444; }
+
+        /* Markdown-like rendering */
+        .md-content p { margin-bottom: 8px; }
+        .md-content strong { font-weight: 600; }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('qa')">RAG 问答</button>
+            <button class="tab" onclick="switchTab('trends')">趋势分析</button>
+            <button class="tab" onclick="switchTab('manage')">Builder 管理</button>
+        </div>
+
         <div class="card">
-            <div class="header">
-                <h1>🤖 AI Builder 管理</h1>
-                <p>管理你关注的 AI Builder 列表</p>
-            </div>
-            <div class="content">
-                <div class="add-form">
-                    <input type="text" id="newBuilder" placeholder="输入 Twitter 用户名..." onkeypress="handleKeyPress(event)">
-                    <button onclick="addBuilder()">添加</button>
+            <!-- ========== RAG 问答面板 ========== -->
+            <div class="panel active" id="panel-qa">
+                <div class="header">
+                    <h1>AI Builder RAG 助手</h1>
+                    <p>基于历史推文数据的智能问答，问我任何关于 AI Builder 动态的问题</p>
                 </div>
-                <div class="builder-list" id="builderList">
-                    <!-- Builder 列表将在这里渲染 -->
+                <div class="content">
+                    <div class="filter-row">
+                        <span>筛选 Builder：</span>
+                        <select id="qaFilter">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message assistant">
+                                你好！我是 AI Builder 推文助手。你可以问我任何关于 AI Builder 们最近推文动态的问题，比如：<br><br>
+                                - "Karpathy 最近在关注什么？"<br>
+                                - "最近有什么关于 AI Agent 的讨论？"<br>
+                                - "有谁提到了开源模型？"
+                            </div>
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" id="chatInput" placeholder="输入你的问题..." onkeypress="if(event.key==='Enter')sendQuestion()">
+                            <button class="btn" id="sendBtn" onclick="sendQuestion()">发送</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 趋势分析面板 ========== -->
+            <div class="panel" id="panel-trends">
+                <div class="header">
+                    <h1>AI 趋势分析</h1>
+                    <p>基于推文数据的热点话题和技术趋势洞察</p>
+                </div>
+                <div class="content">
+                    <div class="stats-bar" id="statsBar">
+                        <div class="stat-card">
+                            <div class="number" id="totalTweets">-</div>
+                            <div class="label">总推文数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" id="totalBuilders">-</div>
+                            <div class="label">Builder 数</div>
+                        </div>
+                    </div>
+                    <div class="builder-chips" id="builderChips"></div>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn" onclick="loadTrends()">生成趋势分析</button>
+                    </div>
+                    <div class="trends-content" id="trendsContent">
+                        <div class="empty-state">点击上方按钮生成趋势分析报告</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== Builder 管理面板 ========== -->
+            <div class="panel" id="panel-manage">
+                <div class="header">
+                    <h1>AI Builder 管理</h1>
+                    <p>管理你关注的 AI Builder 列表</p>
+                </div>
+                <div class="content">
+                    <div class="add-form">
+                        <input type="text" id="newBuilder" placeholder="输入 Twitter 用户名..." onkeypress="if(event.key==='Enter')addBuilder()">
+                        <button class="btn" onclick="addBuilder()">添加</button>
+                    </div>
+                    <div class="builder-list" id="builderList"></div>
                 </div>
             </div>
         </div>
@@ -166,20 +258,29 @@
     <script>
         let builders = [];
 
-        // 加载 builders
+        // ==================== Tab 切换 ====================
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('panel-' + name).classList.add('active');
+            if (name === 'trends') loadStats();
+        }
+
+        // ==================== Builder 管理 ====================
         async function loadBuilders() {
             try {
                 const res = await fetch('/api/users');
                 const data = await res.json();
                 builders = data.ai_builders || [];
-                render();
+                renderBuilders();
+                populateFilter();
             } catch (e) {
                 showToast('加载失败: ' + e.message, 'error');
             }
         }
 
-        // 渲染列表
-        function render() {
+        function renderBuilders() {
             const list = document.getElementById('builderList');
             if (builders.length === 0) {
                 list.innerHTML = '<div class="empty-state">暂无关注的 Builder</div>';
@@ -193,53 +294,180 @@
             `).join('');
         }
 
-        // 添加 builder
+        function populateFilter() {
+            const select = document.getElementById('qaFilter');
+            select.innerHTML = '<option value="">全部</option>' +
+                builders.map(b => `<option value="${b}">@${b}</option>`).join('');
+        }
+
         async function addBuilder() {
             const input = document.getElementById('newBuilder');
             const name = input.value.trim();
             if (!name) return;
-
-            if (builders.includes(name)) {
-                showToast('该用户已存在', 'error');
-                return;
-            }
-
+            if (builders.includes(name)) { showToast('该用户已存在', 'error'); return; }
             builders.push(name);
             input.value = '';
-            await save();
+            await saveBuilders();
         }
 
-        // 删除 builder
         async function deleteBuilder(index) {
             builders.splice(index, 1);
-            await save();
+            await saveBuilders();
         }
 
-        // 保存到后端
-        async function save() {
+        async function saveBuilders() {
             try {
                 const res = await fetch('/api/users', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ai_builders: builders})
                 });
+                if (res.ok) { showToast('保存成功', 'success'); renderBuilders(); populateFilter(); }
+                else showToast('保存失败', 'error');
+            } catch (e) { showToast('保存失败: ' + e.message, 'error'); }
+        }
+
+        // ==================== RAG 问答 ====================
+        async function sendQuestion() {
+            const input = document.getElementById('chatInput');
+            const question = input.value.trim();
+            if (!question) return;
+
+            const username = document.getElementById('qaFilter').value || null;
+
+            // 显示用户消息
+            appendMessage(question, 'user');
+            input.value = '';
+
+            // 显示加载状态
+            const typingEl = document.createElement('div');
+            typingEl.className = 'typing-indicator';
+            typingEl.textContent = '正在检索和思考...';
+            document.getElementById('chatMessages').appendChild(typingEl);
+            scrollChat();
+
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                const res = await fetch('/api/rag/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ question, username, n_results: 5 })
+                });
+                const data = await res.json();
+                typingEl.remove();
+
                 if (res.ok) {
-                    showToast('保存成功', 'success');
-                    render();
+                    appendAnswer(data.answer, data.sources || []);
                 } else {
-                    showToast('保存失败', 'error');
+                    appendMessage('抱歉，出现错误：' + (data.detail || '未知错误'), 'assistant');
                 }
             } catch (e) {
-                showToast('保存失败: ' + e.message, 'error');
+                typingEl.remove();
+                appendMessage('网络错误：' + e.message, 'assistant');
+            }
+            document.getElementById('sendBtn').disabled = false;
+        }
+
+        function appendMessage(text, role) {
+            const el = document.createElement('div');
+            el.className = 'message ' + role;
+            el.textContent = text;
+            document.getElementById('chatMessages').appendChild(el);
+            scrollChat();
+        }
+
+        function appendAnswer(answer, sources) {
+            const el = document.createElement('div');
+            el.className = 'message assistant';
+
+            let html = simpleMarkdown(answer);
+
+            if (sources.length > 0) {
+                html += '<div class="sources"><strong>来源：</strong><br>';
+                sources.forEach(s => {
+                    const link = s.url ? `<a href="${s.url}" target="_blank">查看原文</a>` : '';
+                    html += `@${s.username} (${s.datetime}) ${link}<br>`;
+                });
+                html += '</div>';
+            }
+
+            el.innerHTML = html;
+            document.getElementById('chatMessages').appendChild(el);
+            scrollChat();
+        }
+
+        function scrollChat() {
+            const el = document.getElementById('chatMessages');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function simpleMarkdown(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // ==================== 趋势分析 ====================
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/rag/stats');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                document.getElementById('totalTweets').textContent = data.total_tweets || 0;
+                const builderCounts = data.builder_counts || {};
+                const builderNames = Object.keys(builderCounts);
+                document.getElementById('totalBuilders').textContent = builderNames.length;
+
+                const chipsEl = document.getElementById('builderChips');
+                chipsEl.innerHTML = builderNames.map(name =>
+                    `<span class="builder-chip" onclick="analyzeBuilder('${name}')">@${name} (${builderCounts[name]})</span>`
+                ).join('');
+            } catch (e) {
+                console.error('加载统计失败:', e);
             }
         }
 
-        // 回车添加
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') addBuilder();
+        async function loadTrends() {
+            const content = document.getElementById('trendsContent');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><br>正在分析趋势，请稍候...</div>';
+
+            try {
+                const res = await fetch('/api/rag/trends');
+                const data = await res.json();
+                if (res.ok) {
+                    content.innerHTML = '<div class="md-content">' + simpleMarkdown(data.analysis) + '</div>';
+                } else {
+                    content.innerHTML = '<div class="empty-state">分析失败：' + (data.detail || '未知错误') + '</div>';
+                }
+            } catch (e) {
+                content.innerHTML = '<div class="empty-state">网络错误：' + e.message + '</div>';
+            }
         }
 
-        // 显示提示
+        async function analyzeBuilder(username) {
+            const content = document.getElementById('trendsContent');
+            content.innerHTML = `<div class="loading"><div class="spinner"></div><br>正在分析 @${username} 的动态...</div>`;
+
+            try {
+                const res = await fetch('/api/rag/builder', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    content.innerHTML = `<h3>@${username} 动态分析</h3><div class="md-content">${simpleMarkdown(data.analysis)}</div>`;
+                } else {
+                    content.innerHTML = '<div class="empty-state">分析失败</div>';
+                }
+            } catch (e) {
+                content.innerHTML = '<div class="empty-state">网络错误：' + e.message + '</div>';
+            }
+        }
+
+        // ==================== 通用 ====================
         function showToast(msg, type = '') {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
