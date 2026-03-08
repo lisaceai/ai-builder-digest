@@ -126,6 +126,20 @@ jobs:
         run: |
           python scripts/send_email.py summarized_tweets.json
 
+      - name: Ingest to RAG knowledge base
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+        run: |
+          python scripts/rag_ingest.py summarized_tweets.json
+
+      - name: Commit updated knowledge base
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/knowledge_base.jsonl
+          git diff --staged --quiet || git commit -m "chore: 更新 RAG 知识库 $(date -u +%Y-%m-%d)"
+          git push origin HEAD
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Builder 管理</title>
+    <title>AI Builder 助手</title>
     <style>
         * {
             margin: 0;
@@ -17,7 +17,7 @@
             padding: 40px 20px;
         }
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
         }
         .card {
@@ -40,9 +40,37 @@
             margin-top: 8px;
             font-size: 14px;
         }
-        .content {
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0 30px;
+            background: #f9fafb;
+        }
+        .tab-btn {
+            padding: 14px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .tab-btn.active {
+            color: #0ea5e9;
+            border-bottom-color: #0ea5e9;
+        }
+        .tab-content {
+            display: none;
             padding: 30px;
         }
+        .tab-content.active {
+            display: block;
+        }
+        /* Builder 管理 */
         .add-form {
             display: flex;
             gap: 12px;
@@ -60,7 +88,7 @@
             outline: none;
             border-color: #06b6d4;
         }
-        .add-form button {
+        .add-form button, .btn-primary {
             padding: 12px 24px;
             background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
             color: white;
@@ -71,9 +99,15 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        .add-form button:hover {
+        .add-form button:hover, .btn-primary:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         .builder-list {
             display: flex;
@@ -117,6 +151,116 @@
             padding: 40px 20px;
             color: #9ca3af;
         }
+        /* 聊天界面 */
+        .kb-stats {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #166534;
+        }
+        .chat-messages {
+            height: 380px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fafafa;
+        }
+        .message {
+            max-width: 90%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.assistant {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e5e7eb;
+            color: #1f2937;
+            border-bottom-left-radius: 4px;
+        }
+        .message.assistant .answer-text {
+            margin-bottom: 10px;
+        }
+        .sources-label {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .source-item {
+            font-size: 12px;
+            padding: 6px 10px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin-top: 4px;
+            color: #374151;
+        }
+        .source-item a {
+            color: #0ea5e9;
+            text-decoration: none;
+        }
+        .source-item a:hover {
+            text-decoration: underline;
+        }
+        .message.loading {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e5e7eb;
+            color: #9ca3af;
+            font-style: italic;
+        }
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input-row input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .chat-input-row input:focus {
+            outline: none;
+            border-color: #06b6d4;
+        }
+        .chat-hint {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .chat-hint span {
+            display: inline-block;
+            background: #f3f4f6;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin: 3px 3px 0 0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .chat-hint span:hover {
+            background: #e5e7eb;
+        }
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -129,27 +273,54 @@
             font-size: 14px;
             opacity: 0;
             transition: transform 0.3s, opacity 0.3s;
+            z-index: 999;
         }
         .toast.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
         }
-        .toast.success {
-            background: #10b981;
-        }
-        .toast.error {
-            background: #ef4444;
-        }
+        .toast.success { background: #10b981; }
+        .toast.error { background: #ef4444; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>🤖 AI Builder 管理</h1>
-                <p>管理你关注的 AI Builder 列表</p>
+                <h1>🤖 AI Builder 助手</h1>
+                <p>每日追踪 AI 创业者动态，随时问答</p>
             </div>
-            <div class="content">
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('chat')">💬 智能问答</button>
+                <button class="tab-btn" onclick="switchTab('manage')">⚙️ Builder 管理</button>
+            </div>
+
+            <!-- 聊天标签页 -->
+            <div class="tab-content active" id="tab-chat">
+                <div class="kb-stats" id="kbStats">
+                    <span>📚</span>
+                    <span id="kbStatsText">加载知识库信息...</span>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="answer-text">你好！我是 AI Builder 动态助手。你可以问我关于 Karpathy、Greg Isenberg 等 AI 创业者的最新动态。</div>
+                    </div>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="chatInput" placeholder="问我关于 AI Builder 的任何问题..." onkeypress="handleChatKey(event)">
+                    <button class="btn-primary" id="sendBtn" onclick="sendChat()">发送</button>
+                </div>
+                <div class="chat-hint">
+                    试试问：
+                    <span onclick="fillQuestion('Karpathy 最近在做什么？')">Karpathy 最近在做什么？</span>
+                    <span onclick="fillQuestion('AI 创业者们对 Agent 有什么看法？')">AI 创业者们对 Agent 有什么看法？</span>
+                    <span onclick="fillQuestion('最近有哪些有趣的 AI 工具？')">最近有哪些有趣的 AI 工具？</span>
+                </div>
+            </div>
+
+            <!-- Builder 管理标签页 -->
+            <div class="tab-content" id="tab-manage">
                 <div class="add-form">
                     <input type="text" id="newBuilder" placeholder="输入 Twitter 用户名..." onkeypress="handleKeyPress(event)">
                     <button onclick="addBuilder()">添加</button>
@@ -166,7 +337,117 @@
     <script>
         let builders = [];
 
-        // 加载 builders
+        // 标签切换
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', (tab === 'chat' && i === 0) || (tab === 'manage' && i === 1));
+            });
+            document.getElementById('tab-chat').classList.toggle('active', tab === 'chat');
+            document.getElementById('tab-manage').classList.toggle('active', tab === 'manage');
+        }
+
+        // ===== 知识库统计 =====
+        async function loadKbStats() {
+            try {
+                const res = await fetch('/api/kb/stats');
+                const data = await res.json();
+                const statsEl = document.getElementById('kbStatsText');
+                if (data.total === 0) {
+                    statsEl.textContent = '知识库为空，等待每日摘要任务运行后自动填充';
+                    document.getElementById('kbStats').style.background = '#fff7ed';
+                    document.getElementById('kbStats').style.borderColor = '#fed7aa';
+                    document.getElementById('kbStats').style.color = '#92400e';
+                } else {
+                    statsEl.textContent = `知识库已收录 ${data.total} 条推文，涵盖 ${data.users.length} 位 Builder`;
+                }
+            } catch (e) {
+                document.getElementById('kbStatsText').textContent = '无法获取知识库信息';
+            }
+        }
+
+        // ===== 聊天 =====
+        function fillQuestion(q) {
+            document.getElementById('chatInput').value = q;
+            document.getElementById('chatInput').focus();
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendChat();
+        }
+
+        function appendMessage(role, content, sources) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'message ' + role;
+
+            if (role === 'assistant' && content !== '...') {
+                const answerDiv = document.createElement('div');
+                answerDiv.className = 'answer-text';
+                answerDiv.textContent = content;
+                div.appendChild(answerDiv);
+
+                if (sources && sources.length > 0) {
+                    const label = document.createElement('div');
+                    label.className = 'sources-label';
+                    label.textContent = '参考来源：';
+                    div.appendChild(label);
+
+                    sources.slice(0, 3).forEach(src => {
+                        const item = document.createElement('div');
+                        item.className = 'source-item';
+                        const dateStr = src.datetime ? src.datetime.slice(0, 10) : '';
+                        const link = src.url ? `<a href="${src.url}" target="_blank">@${src.username}</a>` : `@${src.username}`;
+                        item.innerHTML = `${link} ${dateStr}`;
+                        div.appendChild(item);
+                    });
+                }
+            } else {
+                div.textContent = content;
+            }
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div;
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chatInput');
+            const question = input.value.trim();
+            if (!question) return;
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            input.value = '';
+
+            appendMessage('user', question, null);
+            const loadingMsg = appendMessage('loading', '正在检索知识库，思考中...', null);
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question, top_k: 5})
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    loadingMsg.remove();
+                    appendMessage('assistant', '出错了：' + (err.detail || '未知错误'), null);
+                } else {
+                    const data = await res.json();
+                    loadingMsg.remove();
+                    appendMessage('assistant', data.answer, data.sources);
+                }
+            } catch (e) {
+                loadingMsg.remove();
+                appendMessage('assistant', '网络错误：' + e.message, null);
+            }
+
+            sendBtn.disabled = false;
+            input.focus();
+        }
+
+        // ===== Builder 管理 =====
         async function loadBuilders() {
             try {
                 const res = await fetch('/api/users');
@@ -178,7 +459,6 @@
             }
         }
 
-        // 渲染列表
         function render() {
             const list = document.getElementById('builderList');
             if (builders.length === 0) {
@@ -193,7 +473,6 @@
             `).join('');
         }
 
-        // 添加 builder
         async function addBuilder() {
             const input = document.getElementById('newBuilder');
             const name = input.value.trim();
@@ -209,13 +488,11 @@
             await save();
         }
 
-        // 删除 builder
         async function deleteBuilder(index) {
             builders.splice(index, 1);
             await save();
         }
 
-        // 保存到后端
         async function save() {
             try {
                 const res = await fetch('/api/users', {
@@ -234,12 +511,10 @@
             }
         }
 
-        // 回车添加
         function handleKeyPress(e) {
             if (e.key === 'Enter') addBuilder();
         }
 
-        // 显示提示
         function showToast(msg, type = '') {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
@@ -249,6 +524,7 @@
 
         // 初始化
         loadBuilders();
+        loadKbStats();
     </script>
 </body>
 </html>
