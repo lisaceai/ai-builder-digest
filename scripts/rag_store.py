@@ -1,12 +1,13 @@
 """
 RAG 向量存储模块
-使用 ChromaDB 内置 embedding 管理推文向量数据库
+使用 ChromaDB + 智谱 Embedding 管理推文向量数据库
 """
 
 import os
 import json
 import hashlib
 from datetime import datetime
+from openai import OpenAI
 
 import chromadb
 from chromadb.config import Settings
@@ -14,6 +15,34 @@ from chromadb.config import Settings
 
 # ChromaDB 持久化路径
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "chroma_db")
+
+
+def get_embedding_client():
+    """获取智谱 Embedding 客户端"""
+    api_key = os.environ.get("ZHIPU_API_KEY", "")
+    if not api_key:
+        raise ValueError("ZHIPU_API_KEY 环境变量未设置")
+    return OpenAI(
+        api_key=api_key,
+        base_url="https://open.bigmodel.cn/api/paas/v4"
+    )
+
+
+def get_embeddings(texts, client=None):
+    """使用智谱 API 生成文本 embedding"""
+    if client is None:
+        client = get_embedding_client()
+
+    embeddings = []
+    for text in texts:
+        # 截断过长文本
+        truncated = text[:2000] if len(text) > 2000 else text
+        response = client.embeddings.create(
+            model="embedding-3",
+            input=truncated
+        )
+        embeddings.append(response.data[0].embedding)
+    return embeddings
 
 
 def get_chroma_client(db_path=None):
@@ -24,7 +53,7 @@ def get_chroma_client(db_path=None):
 
 
 def get_collection(client=None, db_path=None):
-    """获取或创建推文集合（使用 ChromaDB 默认 embedding）"""
+    """获取或创建推文集合"""
     if client is None:
         client = get_chroma_client(db_path)
     return client.get_or_create_collection(
@@ -56,6 +85,7 @@ def ingest_tweets(tweets_file, db_path=None):
         return 0
 
     collection = get_collection(db_path=db_path)
+    embedding_client = get_embedding_client()
 
     # 过滤掉已存在的推文
     existing_ids = set(collection.get()["ids"])
@@ -97,7 +127,7 @@ def ingest_tweets(tweets_file, db_path=None):
             "original_text": text[:500],  # 限制长度
         })
 
-    # 批量入库（每批 20 条），ChromaDB 自动生成 embedding
+    # 批量生成 embedding 并入库（每批 20 条）
     batch_size = 20
     ingested = 0
     for i in range(0, len(ids), batch_size):
@@ -105,10 +135,13 @@ def ingest_tweets(tweets_file, db_path=None):
         batch_docs = documents[i:i + batch_size]
         batch_meta = metadatas[i:i + batch_size]
 
+        batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
+
         collection.add(
             ids=batch_ids,
             documents=batch_docs,
             metadatas=batch_meta,
+            embeddings=batch_embeddings,
         )
         ingested += len(batch_ids)
         print(f"  Ingested {ingested}/{len(ids)} tweets")
@@ -125,13 +158,16 @@ def search_tweets(query, n_results=5, username=None, db_path=None):
     username: 可选，按作者过滤
     """
     collection = get_collection(db_path=db_path)
+    embedding_client = get_embedding_client()
+
+    query_embedding = get_embeddings([query], client=embedding_client)[0]
 
     where_filter = None
     if username:
         where_filter = {"username": username}
 
     results = collection.query(
-        query_texts=[query],
+        query_embeddings=[query_embedding],
         n_results=n_results,
         where=where_filter,
         include=["documents", "metadatas", "distances"]
