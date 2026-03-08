@@ -4,6 +4,8 @@ import os
 # 确保项目根目录在 Python 路径中
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from typing import List, Optional
+
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -20,12 +22,12 @@ CONFIG_FILE = BASE_DIR / "config" / "users.json"
 
 
 class UsersData(BaseModel):
-    ai_builders: list[str]
+    ai_builders: List[str]
 
 
 class QuestionRequest(BaseModel):
     question: str
-    username: str | None = None
+    username: Optional[str] = None
     n_results: int = 5
 
 
