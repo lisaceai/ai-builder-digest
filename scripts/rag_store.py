@@ -85,6 +85,7 @@ def ingest_tweets(tweets_file, db_path=None):
     """
     将推文数据导入 ChromaDB 向量数据库
     tweets_file: summarized_tweets.json 路径
+    当 ZHIPU_API_KEY 未设置或 ChromaDB 不可用时，仅保存到 JSON 文件
     """
     with open(tweets_file, "r", encoding="utf-8") as f:
         tweets = json.load(f)
@@ -93,31 +94,10 @@ def ingest_tweets(tweets_file, db_path=None):
         print("No tweets to ingest.")
         return 0
 
-    collection = get_collection(db_path=db_path)
-    embedding_client = get_embedding_client()
-
-    # 过滤掉已存在的推文
-    existing_ids = set(collection.get()["ids"])
-    new_tweets = []
+    # 准备数据
+    all_tweet_records = []
     for t in tweets:
         tid = tweet_id_hash(t)
-        if tid not in existing_ids:
-            new_tweets.append(t)
-
-    if not new_tweets:
-        print("All tweets already in database.")
-        return 0
-
-    print(f"Ingesting {len(new_tweets)} new tweets...")
-
-    # 准备数据
-    ids = []
-    documents = []
-    metadatas = []
-
-    for t in new_tweets:
-        tid = tweet_id_hash(t)
-        # 将摘要和原文合并为文档内容，便于检索
         summary = t.get("summary", "")
         text = t.get("text", "")
         doc = f"{summary}\n\n原文：{text}" if summary else text
@@ -126,39 +106,87 @@ def ingest_tweets(tweets_file, db_path=None):
         dt = t.get("datetime", "")
         url = t.get("url", "")
 
-        ids.append(tid)
-        documents.append(doc)
-        metadatas.append({
-            "username": username,
-            "datetime": dt,
-            "url": url,
-            "summary": summary,
-            "original_text": text[:500],  # 限制长度
+        all_tweet_records.append({
+            "id": tid,
+            "document": doc,
+            "metadata": {
+                "username": username,
+                "datetime": dt,
+                "url": url,
+                "summary": summary,
+                "original_text": text[:500],
+            },
         })
 
-    # 批量生成 embedding 并入库（每批 20 条）
-    batch_size = 20
+    # 尝试使用 ChromaDB + Embedding 入库
+    use_chromadb = HAS_CHROMADB and os.environ.get("ZHIPU_API_KEY", "")
     ingested = 0
-    for i in range(0, len(ids), batch_size):
-        batch_ids = ids[i:i + batch_size]
-        batch_docs = documents[i:i + batch_size]
-        batch_meta = metadatas[i:i + batch_size]
 
-        batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
+    if use_chromadb:
+        try:
+            collection = get_collection(db_path=db_path)
+            embedding_client = get_embedding_client()
 
-        collection.add(
-            ids=batch_ids,
-            documents=batch_docs,
-            metadatas=batch_meta,
-            embeddings=batch_embeddings,
-        )
-        ingested += len(batch_ids)
-        print(f"  Ingested {ingested}/{len(ids)} tweets")
+            # 过滤掉已存在的推文
+            existing_ids = set(collection.get()["ids"])
+            new_records = [r for r in all_tweet_records if r["id"] not in existing_ids]
 
-    print(f"Done. Total tweets in DB: {collection.count()}")
+            if not new_records:
+                print("All tweets already in database.")
+                return 0
 
-    # 同步保存到 JSON 文件（确保趋势分析和统计不依赖 ChromaDB）
-    _sync_to_json(collection)
+            print(f"Ingesting {len(new_records)} new tweets...")
+
+            ids = [r["id"] for r in new_records]
+            documents = [r["document"] for r in new_records]
+            metadatas = [r["metadata"] for r in new_records]
+
+            # 批量生成 embedding 并入库（每批 20 条）
+            batch_size = 20
+            for i in range(0, len(ids), batch_size):
+                batch_ids = ids[i:i + batch_size]
+                batch_docs = documents[i:i + batch_size]
+                batch_meta = metadatas[i:i + batch_size]
+
+                batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
+
+                collection.add(
+                    ids=batch_ids,
+                    documents=batch_docs,
+                    metadatas=batch_meta,
+                    embeddings=batch_embeddings,
+                )
+                ingested += len(batch_ids)
+                print(f"  Ingested {ingested}/{len(ids)} tweets")
+
+            print(f"Done. Total tweets in DB: {collection.count()}")
+
+            # 同步保存到 JSON 文件
+            _sync_to_json(collection)
+        except Exception as e:
+            print(f"Warning: ChromaDB ingestion failed ({e}), falling back to JSON-only storage.")
+            use_chromadb = False
+
+    if not use_chromadb:
+        # JSON-only 模式：直接保存到 JSON 文件
+        if not os.environ.get("ZHIPU_API_KEY", ""):
+            print("ZHIPU_API_KEY not set, using JSON-only storage.")
+        if not HAS_CHROMADB:
+            print("ChromaDB not available, using JSON-only storage.")
+
+        existing = _load_json_store()
+        existing_ids = {t["id"] for t in existing}
+        new_records = [r for r in all_tweet_records if r["id"] not in existing_ids]
+
+        if not new_records:
+            print("All tweets already in JSON store.")
+            return 0
+
+        print(f"Saving {len(new_records)} new tweets to JSON store...")
+        existing.extend(new_records)
+        _save_json_store(existing)
+        ingested = len(new_records)
+        print(f"Done. Total tweets in JSON store: {len(existing)}")
 
     return ingested
 
