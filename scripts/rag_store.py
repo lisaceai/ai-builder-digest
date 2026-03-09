@@ -7,7 +7,7 @@ RAG 向量存储模块
 import os
 import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from openai import OpenAI
 
 try:
@@ -51,6 +51,105 @@ def get_embeddings(texts, client=None):
         embeddings.append(response.data[0].embedding)
     return embeddings
 
+
+
+
+def _filter_tweets_by_days(tweets, days=None):
+    """按时间范围过滤推文列表"""
+    if not days or not tweets:
+        return tweets
+
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    filtered = []
+    for t in tweets:
+        dt_str = t.get("metadata", {}).get("datetime", "")
+        if not dt_str:
+            filtered.append(t)
+            continue
+
+        try:
+            for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d"]:
+                try:
+                    dt = datetime.strptime(dt_str[:26], fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                filtered.append(t)
+                continue
+            if dt >= cutoff:
+                filtered.append(t)
+        except Exception:
+            filtered.append(t)
+
+    return filtered
+
+
+def ensure_vector_store_ready(db_path=None):
+    """
+    当向量库为空时，尝试使用 JSON 存储数据回填到 ChromaDB。
+    返回 True 表示当前可用向量检索，False 表示不可用。
+    """
+    if not HAS_CHROMADB or not os.environ.get("ZHIPU_API_KEY", ""):
+        return False
+
+    try:
+        collection = get_collection(db_path=db_path)
+        if collection.count() > 0:
+            return True
+
+        records = _load_json_store()
+        if not records:
+            return False
+
+        ids = [r["id"] for r in records if r.get("id") and r.get("document")]
+        docs = [r["document"] for r in records if r.get("id") and r.get("document")]
+        metas = [r.get("metadata", {}) for r in records if r.get("id") and r.get("document")]
+
+        if not ids:
+            return False
+
+        embedding_client = get_embedding_client()
+        batch_size = 20
+        restored = 0
+        for i in range(0, len(ids), batch_size):
+            batch_ids = ids[i:i + batch_size]
+            batch_docs = docs[i:i + batch_size]
+            batch_meta = metas[i:i + batch_size]
+            batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
+            collection.add(
+                ids=batch_ids,
+                documents=batch_docs,
+                metadatas=batch_meta,
+                embeddings=batch_embeddings,
+            )
+            restored += len(batch_ids)
+
+        print(f"Hydrated ChromaDB from JSON store: {restored} tweets")
+        return collection.count() > 0
+    except Exception as e:
+        print(f"Warning: failed to hydrate ChromaDB from JSON ({e})")
+        return False
+
+
+def get_all_vector_tweets(db_path=None, days=None):
+    """从向量库读取全部推文（可按天数过滤）"""
+    if not ensure_vector_store_ready(db_path=db_path):
+        return []
+
+    try:
+        collection = get_collection(db_path=db_path)
+        results = collection.get(include=["metadatas", "documents"])
+        tweets = []
+        for i, doc_id in enumerate(results.get("ids", [])):
+            tweets.append({
+                "id": doc_id,
+                "document": results["documents"][i],
+                "metadata": results["metadatas"][i],
+            })
+        return _filter_tweets_by_days(tweets, days=days)
+    except Exception:
+        return []
 
 def get_chroma_client(db_path=None):
     """获取 ChromaDB 持久化客户端"""
@@ -215,6 +314,9 @@ def search_tweets(query, n_results=5, username=None, db_path=None):
     n_results: 返回结果数量
     username: 可选，按作者过滤
     """
+    if not ensure_vector_store_ready(db_path=db_path):
+        return []
+
     collection = get_collection(db_path=db_path)
 
     # 先检查数据库是否有数据
@@ -286,33 +388,7 @@ def get_all_tweets_metadata(db_path=None, days=None):
         except Exception:
             pass
 
-    # 按时间范围过滤
-    if days and tweets:
-        from datetime import timedelta
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        filtered = []
-        for t in tweets:
-            dt_str = t.get("metadata", {}).get("datetime", "")
-            if dt_str:
-                try:
-                    for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d"]:
-                        try:
-                            dt = datetime.strptime(dt_str[:26], fmt)
-                            break
-                        except ValueError:
-                            continue
-                    else:
-                        filtered.append(t)
-                        continue
-                    if dt >= cutoff:
-                        filtered.append(t)
-                except Exception:
-                    filtered.append(t)
-            else:
-                filtered.append(t)
-        tweets = filtered
-
-    return tweets
+    return _filter_tweets_by_days(tweets, days=days)
 
 
 def get_all_tweets_stats(days=None):

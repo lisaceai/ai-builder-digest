@@ -136,7 +136,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tweets_store.json
+          git add data/tweets_store.json data/chroma_db
           git diff --cached --quiet || git commit -m "更新推文数据 $(date -u +%Y-%m-%d)"
           git push origin main || echo "Push failed, will retry on next run"
 
