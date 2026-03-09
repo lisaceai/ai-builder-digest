@@ -117,6 +117,8 @@ jobs:
           python scripts/summarize.py raw_tweets.json summarized_tweets.json
 
       - name: Ingest tweets into RAG database
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: |
           python scripts/rag_store.py summarized_tweets.json
 
