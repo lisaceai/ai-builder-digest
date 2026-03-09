@@ -20,6 +20,21 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 app = FastAPI(title="AI Builder 管理器")
 
+
+@app.on_event("startup")
+async def startup_event():
+    """启动时从 JSON 回填 ChromaDB，确保向量搜索可用"""
+    from scripts.rag_store import ensure_vector_store_ready
+    try:
+        ready = ensure_vector_store_ready()
+        if ready:
+            print("ChromaDB hydrated from JSON store on startup.")
+        else:
+            print("ChromaDB hydration skipped (no data or missing API key).")
+    except Exception as e:
+        print(f"Warning: ChromaDB startup hydration failed: {e}")
+
+
 # 配置路径
 BASE_DIR = Path(__file__).resolve().parent.parent
 CONFIG_FILE = BASE_DIR / "config" / "users.json"
