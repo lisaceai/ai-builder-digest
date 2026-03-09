@@ -56,6 +56,14 @@ def ask(question, n_results=5, username=None, db_path=None):
     n_results: 检索结果数量
     username: 可选，只检索特定 builder 的推文
     """
+    # 0. 检查 API Key
+    api_key = os.environ.get("ZHIPU_API_KEY", "")
+    if not api_key:
+        return {
+            "answer": "ZHIPU_API_KEY 环境变量未设置，无法进行问答。请在服务器环境中配置该密钥。",
+            "sources": [],
+        }
+
     # 1. 检索相关推文
     results = search_tweets(
         query=question,
@@ -74,7 +82,6 @@ def ask(question, n_results=5, username=None, db_path=None):
     context = format_context(results)
 
     # 3. 调用 LLM 生成回答
-    api_key = os.environ.get("ZHIPU_API_KEY", "")
     client = OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4"

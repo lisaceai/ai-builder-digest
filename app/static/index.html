@@ -440,20 +440,31 @@
             try {
                 const url = currentDays ? `/api/rag/stats?days=${currentDays}` : '/api/rag/stats';
                 const res = await fetch(url);
-                if (!res.ok) return;
+                if (!res.ok) {
+                    document.getElementById('totalTweets').textContent = '-';
+                    document.getElementById('totalBuilders').textContent = '-';
+                    return;
+                }
                 const data = await res.json();
 
-                document.getElementById('totalTweets').textContent = data.total_tweets || 0;
+                const totalTweets = data.total_tweets || 0;
+                document.getElementById('totalTweets').textContent = totalTweets;
                 const builderCounts = data.builder_counts || {};
                 const builderNames = Object.keys(builderCounts);
                 document.getElementById('totalBuilders').textContent = builderNames.length;
 
                 const chipsEl = document.getElementById('builderChips');
-                chipsEl.innerHTML = builderNames.map(name =>
-                    `<span class="builder-chip" onclick="analyzeBuilder('${name}')">@${name} (${builderCounts[name]})</span>`
-                ).join('');
+                if (totalTweets === 0) {
+                    chipsEl.innerHTML = '<span style="color:#9ca3af;font-size:13px;">暂无推文数据，请先运行数据抓取流程导入推文</span>';
+                } else {
+                    chipsEl.innerHTML = builderNames.map(name =>
+                        `<span class="builder-chip" onclick="analyzeBuilder('${name}')">@${name} (${builderCounts[name]})</span>`
+                    ).join('');
+                }
             } catch (e) {
                 console.error('加载统计失败:', e);
+                document.getElementById('totalTweets').textContent = '-';
+                document.getElementById('totalBuilders').textContent = '-';
             }
         }
 

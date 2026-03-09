@@ -157,6 +157,10 @@ def search_tweets(query, n_results=5, username=None, db_path=None):
     """
     collection = get_collection(db_path=db_path)
 
+    # 先检查数据库是否有数据
+    if collection.count() == 0:
+        return []
+
     where_filter = None
     if username:
         where_filter = {"username": username}
