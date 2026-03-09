@@ -12,7 +12,6 @@ from openai import OpenAI
 
 try:
     import chromadb
-    from chromadb.config import Settings
     HAS_CHROMADB = True
 except ImportError:
     HAS_CHROMADB = False
@@ -189,8 +188,12 @@ def search_tweets(query, n_results=5, username=None, db_path=None):
     username: 可选，按作者过滤
     """
     collection = get_collection(db_path=db_path)
-    embedding_client = get_embedding_client()
 
+    # 先检查数据库是否有数据
+    if collection.count() == 0:
+        return []
+
+    embedding_client = get_embedding_client()
     query_embedding = get_embeddings([query], client=embedding_client)[0]
 
     where_filter = None

@@ -14,6 +14,10 @@ import json
 import subprocess
 from pathlib import Path
 
+# 自动加载 .env 文件中的环境变量
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
 app = FastAPI(title="AI Builder 管理器")
 
 # 配置路径
