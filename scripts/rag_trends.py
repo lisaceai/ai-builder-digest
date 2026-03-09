@@ -5,10 +5,16 @@
 
 import os
 from openai import OpenAI
-from scripts.rag_store import get_all_tweets_metadata, search_tweets
+from scripts.rag_store import get_all_vector_tweets, search_tweets
 
 
-TRENDS_SYSTEM_PROMPT = """你是一个 AI 技术趋势分析师，擅长从推文数据中发现技术趋势和热点话题。"""
+TRENDS_SYSTEM_PROMPT = """你是一个 AI 技术趋势分析师，必须严格基于给定推文证据输出结论。
+
+要求：
+1. 不允许编造推文中未出现的事实、观点或 builder。
+2. 每个热点话题后附上证据来源（@builder + 日期）。
+3. 若证据不足，明确写“证据不足”。
+4. 只总结输入推文中真实出现的信息。"""
 
 TRENDS_PROMPT = """请基于以下 AI Builder 们最近的推文内容，分析当前 AI 领域的热点话题和趋势。
 
@@ -74,20 +80,22 @@ def analyze_trends(db_path=None, days=None):
     days: 可选，只分析最近 N 天的推文
     返回趋势分析文本
     """
-    all_tweets = get_all_tweets_metadata(db_path=db_path, days=days)
+    all_tweets = get_all_vector_tweets(db_path=db_path, days=days)
 
     if not all_tweets:
-        return {"analysis": "数据库中暂无推文数据，请先导入推文。", "tweet_count": 0}
+        return {"analysis": "向量数据库中暂无推文数据，请先导入推文。", "tweet_count": 0}
 
     # 构建推文摘要文本（限制总长度）
     tweets_text_parts = []
-    for t in all_tweets[:100]:  # 最多分析 100 条
-        meta = t["metadata"]
+    for t in all_tweets[:120]:  # 最多分析 120 条
+        meta = t.get("metadata", {})
         username = meta.get("username", "未知")
         dt = meta.get("datetime", "")
         summary = meta.get("summary", "")
-        if summary:
-            tweets_text_parts.append(f"@{username} ({dt}): {summary}")
+        content = t.get("document", "")
+        snippet = summary if summary else content[:280]
+        if snippet:
+            tweets_text_parts.append(f"@{username} ({dt}): {snippet}")
 
     tweets_text = "\n".join(tweets_text_parts)
 
@@ -123,11 +131,13 @@ def analyze_builder(username, db_path=None):
 
     tweets_text_parts = []
     for r in results:
-        meta = r["metadata"]
+        meta = r.get("metadata", {})
         dt = meta.get("datetime", "")
         summary = meta.get("summary", "")
-        if summary:
-            tweets_text_parts.append(f"({dt}): {summary}")
+        content = r.get("document", "")
+        snippet = summary if summary else content[:280]
+        if snippet:
+            tweets_text_parts.append(f"({dt}): {snippet}")
 
     tweets_text = "\n".join(tweets_text_parts)
     prompt = BUILDER_ANALYSIS_PROMPT.format(username=username, tweets_text=tweets_text)
