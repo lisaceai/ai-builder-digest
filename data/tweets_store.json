@@ -1,0 +1,57 @@
+[
+  {
+    "id": "test_001",
+    "document": "GPT-4o 在多模态任务上表现出色，视觉能力为 AI 应用带来了重大变化。\n\n原文：GPT-4o is impressive for multimodal tasks. The vision capabilities are a game changer for AI applications.",
+    "metadata": {
+      "username": "kaborsky",
+      "datetime": "2026-03-08T10:00:00Z",
+      "url": "https://x.com/kaborsky/status/001",
+      "summary": "GPT-4o 在多模态任务上表现出色，视觉能力为 AI 应用带来了重大变化。",
+      "original_text": "GPT-4o is impressive for multimodal tasks."
+    }
+  },
+  {
+    "id": "test_002",
+    "document": "Karpathy 正在研究新的分词方法，字节级 BPE 的改进版在代码处理上效果更好。\n\n原文：Been working on a new approach to tokenization.",
+    "metadata": {
+      "username": "karpathy",
+      "datetime": "2026-03-07T15:30:00Z",
+      "url": "https://x.com/karpathy/status/002",
+      "summary": "Karpathy 正在研究新的分词方法，字节级 BPE 的改进版在代码处理上效果更好。",
+      "original_text": "Been working on a new approach to tokenization."
+    }
+  },
+  {
+    "id": "test_003",
+    "document": "LeCun 认为自监督学习是构建世界模型的关键，机器需要像人类一样学习。\n\n原文：Self-supervised learning is the key to building world models.",
+    "metadata": {
+      "username": "ylecun",
+      "datetime": "2026-03-07T09:00:00Z",
+      "url": "https://x.com/ylecun/status/003",
+      "summary": "LeCun 认为自监督学习是构建世界模型的关键，机器需要像人类一样学习。",
+      "original_text": "Self-supervised learning is the key to building world models."
+    }
+  },
+  {
+    "id": "test_004",
+    "document": "Karpathy 预测 AI Agent 在 2026 年将大热，推理能力与工具使用的结合非常强大。\n\n原文：AI Agents are going to be huge in 2026.",
+    "metadata": {
+      "username": "karpathy",
+      "datetime": "2026-03-06T12:00:00Z",
+      "url": "https://x.com/karpathy/status/004",
+      "summary": "Karpathy 预测 AI Agent 在 2026 年将大热，推理能力与工具使用的结合非常强大。",
+      "original_text": "AI Agents are going to be huge in 2026."
+    }
+  },
+  {
+    "id": "test_005",
+    "document": "Andrew Ng 认为开源 AI 模型正在使 AI 技术更加民主化，对教育和研究有重大意义。\n\n原文：Open source AI models are democratizing access to AI technology.",
+    "metadata": {
+      "username": "AndrewYNg",
+      "datetime": "2026-03-05T18:00:00Z",
+      "url": "https://x.com/AndrewYNg/status/005",
+      "summary": "Andrew Ng 认为开源 AI 模型正在使 AI 技术更加民主化，对教育和研究有重大意义。",
+      "original_text": "Open source AI models are democratizing access to AI technology."
+    }
+  }
+]
