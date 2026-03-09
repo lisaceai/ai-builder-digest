@@ -132,6 +132,14 @@ jobs:
         run: |
           python scripts/send_email.py summarized_tweets.json
 
+      - name: Commit tweet data to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/tweets_store.json
+          git diff --cached --quiet || git commit -m "更新推文数据 $(date -u +%Y-%m-%d)"
+          git push origin main || echo "Push failed, will retry on next run"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -140,4 +148,5 @@ jobs:
             raw_tweets.json
             summarized_tweets.json
             data/chroma_db/
+            data/tweets_store.json
           retention-days: 7

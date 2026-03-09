@@ -60,12 +60,13 @@ def _call_llm(system_prompt, user_prompt):
     return response.choices[0].message.content.strip()
 
 
-def analyze_trends(db_path=None):
+def analyze_trends(db_path=None, days=None):
     """
     分析整体趋势
+    days: 可选，只分析最近 N 天的推文
     返回趋势分析文本
     """
-    all_tweets = get_all_tweets_metadata(db_path=db_path)
+    all_tweets = get_all_tweets_metadata(db_path=db_path, days=days)
 
     if not all_tweets:
         return {"analysis": "数据库中暂无推文数据，请先导入推文。", "tweet_count": 0}

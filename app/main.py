@@ -31,6 +31,10 @@ class QuestionRequest(BaseModel):
     n_results: int = 5
 
 
+class TrendsRequest(BaseModel):
+    days: Optional[int] = None
+
+
 class BuilderAnalysisRequest(BaseModel):
     username: str
 
@@ -114,11 +118,11 @@ async def rag_ask(req: QuestionRequest):
 
 
 @app.get("/api/rag/trends")
-async def rag_trends():
+async def rag_trends(days: Optional[int] = None):
     """趋势分析接口"""
     try:
         from scripts.rag_trends import analyze_trends
-        result = analyze_trends()
+        result = analyze_trends(days=days)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -136,24 +140,11 @@ async def rag_builder_analysis(req: BuilderAnalysisRequest):
 
 
 @app.get("/api/rag/stats")
-async def rag_stats():
+async def rag_stats(days: Optional[int] = None):
     """RAG 数据库统计"""
     try:
-        from scripts.rag_store import get_collection
-        collection = get_collection()
-        count = collection.count()
-
-        # 统计各 builder 的推文数量
-        all_data = collection.get(include=["metadatas"])
-        builder_counts = {}
-        for meta in all_data["metadatas"]:
-            username = meta.get("username", "unknown")
-            builder_counts[username] = builder_counts.get(username, 0) + 1
-
-        return {
-            "total_tweets": count,
-            "builder_counts": builder_counts,
-        }
+        from scripts.rag_store import get_all_tweets_stats
+        return get_all_tweets_stats(days=days)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
