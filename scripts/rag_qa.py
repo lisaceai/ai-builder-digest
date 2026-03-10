@@ -5,7 +5,7 @@ RAG 问答模块
 
 import os
 from openai import OpenAI
-from scripts.rag_store import search_tweets
+from scripts.rag_store import search_tweets, get_all_tweets_stats
 
 
 QA_SYSTEM_PROMPT = """你是一个 AI 技术动态助手，基于 AI Builder 们的推文数据回答用户问题。
@@ -65,10 +65,20 @@ def ask(question, n_results=5, username=None, db_path=None):
     )
 
     if not results:
+        stats = get_all_tweets_stats()
+        total = stats.get("total_tweets", 0)
+
+        if total > 0:
+            return {
+                "answer": "已检索到推文库中有数据，但没有找到与你问题直接相关的内容。你可以尝试：\n1. 换更短的关键词（如“RAG”“Agent”“开源模型”）\n2. 指定某位 Builder 再问\n3. 放宽问题范围后再提问",
+                "sources": [],
+            }
+
         return {
-            "answer": "目前数据库中没有相关推文数据。请确保：\n1. 已运行 Daily Digest 工作流导入推文\n2. data/tweets_store.json 中有数据",
+            "answer": "目前数据库中没有推文数据。请确保：\n1. 已运行 Daily Digest 工作流导入推文\n2. data/tweets_store.json 中有数据",
             "sources": [],
         }
+
 
     # 2. 构建上下文
     context = format_context(results)

@@ -198,7 +198,7 @@ async def health_check():
         "components": {
             "zhipu_api_key": "configured" if api_key_set else "MISSING - 请在 Render/环境变量中设置 ZHIPU_API_KEY",
             "chromadb": f"ok ({chroma_count} tweets)" if chroma_ok else "unavailable (will use keyword fallback)",
-            "json_store": f"ok ({json_count} tweets)" if json_count > 0 else "empty - 请先运行 Daily Digest 工作流",
+            "json_store": f"ok ({json_count} tweets)" if json_count > 0 else "empty - 请先运行 Daily Digest 工作流（无需在 Render manual commit）",
         },
         "rag_features": {
             "qa_smart": "available" if api_key_set and json_count > 0 else "unavailable",
