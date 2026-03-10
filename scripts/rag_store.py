@@ -396,25 +396,36 @@ def get_all_tweets_metadata(db_path=None, days=None):
     days: 可选，只返回最近 N 天内的推文
     """
     tweets = []
+    tweets_by_id = {}
 
-    # 优先从 ChromaDB 读取
+    # 读取 ChromaDB（如可用）
     if HAS_CHROMADB:
         try:
             collection = get_collection(db_path=db_path)
             if collection.count() > 0:
                 results = collection.get(include=["metadatas", "documents"])
-                for i, doc_id in enumerate(results["ids"]):
-                    tweets.append({
+                for i, doc_id in enumerate(results.get("ids", [])):
+                    record = {
                         "id": doc_id,
                         "document": results["documents"][i],
                         "metadata": results["metadatas"][i],
-                    })
+                    }
+                    tweets_by_id[doc_id] = record
+                    tweets.append(record)
         except Exception:
             pass
 
-    # ChromaDB 没有数据时，fallback 到 JSON
+    # 始终读取 JSON，并把 ChromaDB 缺失的数据补齐。
+    # 这样可以避免「ChromaDB 有旧数据、JSON 有新数据」时统计为 0 的问题。
+    json_tweets = _load_json_store()
     if not tweets:
-        tweets = _load_json_store()
+        tweets = json_tweets
+    else:
+        for t in json_tweets:
+            tid = t.get("id")
+            if tid and tid in tweets_by_id:
+                continue
+            tweets.append(t)
 
     return _filter_tweets_by_days(tweets, days=days)
 
