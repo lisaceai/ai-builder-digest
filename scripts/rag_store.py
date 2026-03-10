@@ -22,7 +22,7 @@ except ImportError:
 TWEETS_JSON_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "tweets_store.json")
 
 # Pinecone 配置
-PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "tweets")
+PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME") or "tweets"
 EMBEDDING_DIM = 2048  # 智谱 embedding-3 维度
 
 
