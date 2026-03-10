@@ -152,5 +152,17 @@
       "summary": "有人开发了一个名为Paper的Figma工具，让AI Agent能够进行设计工作。通过连接Claude Code或OpenClaw，AI可以更轻松地创建设计并迭代，甚至能构建和部署React应用。这段视频演示了从安装工具到最终部署的完整流程，展示了AI在设计领域的实际应用能力。",
       "original_text": "yup.. Someone made a Figma for AI Agents\n\nClaude Code and OpenClaw can now create designs 10x easier...\n\n00:00 Intro\n00:46 Installing @paper \n01:56 Connecting Claude Code to Paper\n03:38 Plan for Design\n06:23 Claude Code designs\n08:28 Iterating\n11:48 Building the React app\n13:37 Deploying"
     }
+  },
+  {
+    "id": "2031381984828862964",
+    "document": "要改变全球30亿用户和1100万家组织使用的产品绝非易事，Chandu Thota和Frank Tisellano及其团队正在推进这项变革。大家非常兴奋能进一步测试相关功能，特别是Drive AI功能。\n\n原文：It's not easy to change something that 3 billion people and 11 million organizations use worldwide.\n\n@ChanduThota, @franktisellano and team are doing it - super excited to test this out more especially the Drive AI features.",
+    "metadata": {
+      "username": "petergyang",
+      "datetime": "Tue Mar 10 14:49:41 +0000 2026",
+      "url": "https://x.com/petergyang/status/2031381984828862964",
+      "summary": "要改变全球30亿用户和1100万家组织使用的产品绝非易事，Chandu Thota和Frank Tisellano及其团队正在推进这项变革。大家非常兴奋能进一步测试相关功能，特别是Drive AI功能。",
+      "original_text": "It's not easy to change something that 3 billion people and 11 million organizations use worldwide.\n\n@ChanduThota, @franktisellano and team are doing it - super excited to test this out more especially the Drive AI features.",
+      "document": "要改变全球30亿用户和1100万家组织使用的产品绝非易事，Chandu Thota和Frank Tisellano及其团队正在推进这项变革。大家非常兴奋能进一步测试相关功能，特别是Drive AI功能。\n\n原文：It's not easy to change something that 3 billion people and 11 million organizations use worldwide.\n\n@ChanduThota, @franktisellano and team are doing it - super excited to test this out more especially the Drive AI features."
+    }
   }
 ]
