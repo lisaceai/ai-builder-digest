@@ -56,15 +56,7 @@ def ask(question, n_results=5, username=None, db_path=None):
     n_results: 检索结果数量
     username: 可选，只检索特定 builder 的推文
     """
-    # 0. 检查 API Key
-    api_key = os.environ.get("ZHIPU_API_KEY", "")
-    if not api_key:
-        return {
-            "answer": "ZHIPU_API_KEY 环境变量未设置，无法进行问答。请在服务器环境中配置该密钥。",
-            "sources": [],
-        }
-
-    # 1. 检索相关推文
+    # 1. 检索相关推文（自动降级为关键词匹配）
     results = search_tweets(
         query=question,
         n_results=n_results,
@@ -74,7 +66,7 @@ def ask(question, n_results=5, username=None, db_path=None):
 
     if not results:
         return {
-            "answer": "目前数据库中没有相关推文数据，请确保已经导入推文。",
+            "answer": "目前数据库中没有相关推文数据。请确保：\n1. 已运行 Daily Digest 工作流导入推文\n2. data/tweets_store.json 中有数据",
             "sources": [],
         }
 
@@ -82,6 +74,18 @@ def ask(question, n_results=5, username=None, db_path=None):
     context = format_context(results)
 
     # 3. 调用 LLM 生成回答
+    api_key = os.environ.get("ZHIPU_API_KEY", "")
+    if not api_key:
+        # 无 API Key 时直接返回检索结果摘要
+        summaries = []
+        for r in results:
+            meta = r["metadata"]
+            summaries.append(f"@{meta.get('username', '未知')} ({meta.get('datetime', '')}): {meta.get('summary', r.get('document', '')[:200])}")
+        return {
+            "answer": "（ZHIPU_API_KEY 未配置，无法生成智能回答，以下为相关推文检索结果）\n\n" + "\n\n".join(summaries),
+            "sources": [{"username": r["metadata"].get("username", ""), "datetime": r["metadata"].get("datetime", ""), "url": r["metadata"].get("url", ""), "summary": r["metadata"].get("summary", "")} for r in results],
+        }
+
     client = OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4"

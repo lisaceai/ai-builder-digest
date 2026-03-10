@@ -5,7 +5,7 @@
 
 import os
 from openai import OpenAI
-from scripts.rag_store import get_all_tweets_metadata, search_tweets
+from scripts.rag_store import get_all_tweets_metadata, search_tweets, _load_json_store
 
 
 TRENDS_SYSTEM_PROMPT = """你是一个 AI 技术趋势分析师，必须严格基于给定推文证据输出结论。
@@ -115,6 +115,7 @@ def analyze_trends(db_path=None, days=None):
 def analyze_builder(username, db_path=None):
     """
     分析单个 Builder 的动态
+    优先用向量检索，降级为直接从 JSON 按用户名过滤
     """
     results = search_tweets(
         query=f"@{username} 最近的推文和观点",
@@ -122,6 +123,11 @@ def analyze_builder(username, db_path=None):
         username=username,
         db_path=db_path,
     )
+
+    # 如果向量检索和关键词搜索都没结果，直接从 JSON 按用户名过滤
+    if not results:
+        all_tweets = get_all_tweets_metadata(db_path=db_path)
+        results = [t for t in all_tweets if t.get("metadata", {}).get("username") == username][:20]
 
     if not results:
         return {

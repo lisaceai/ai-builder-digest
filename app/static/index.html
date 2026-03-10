@@ -515,8 +515,34 @@
             setTimeout(() => toast.className = 'toast', 2500);
         }
 
+        // ==================== 健康检查 ====================
+        async function checkHealth() {
+            try {
+                const res = await fetch('/api/health');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.status === 'degraded') {
+                    const issues = [];
+                    const c = data.components;
+                    if (c.zhipu_api_key && c.zhipu_api_key.includes('MISSING')) {
+                        issues.push('ZHIPU_API_KEY 未配置');
+                    }
+                    if (c.json_store && c.json_store.includes('empty')) {
+                        issues.push('推文数据为空，请先运行 Daily Digest 工作流');
+                    }
+                    if (issues.length > 0) {
+                        showToast('配置提醒: ' + issues.join('; '), 'error');
+                    }
+                }
+            } catch (e) {
+                console.log('Health check failed:', e);
+            }
+        }
+
         // 初始化
         loadBuilders();
+        checkHealth();
     </script>
 </body>
 </html>

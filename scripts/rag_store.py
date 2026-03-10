@@ -291,25 +291,33 @@ def _sync_to_json(collection):
 def search_tweets(query, n_results=5, username=None, db_path=None):
     """
     检索与查询相关的推文
-    query: 自然语言查询
-    n_results: 返回结果数量
-    username: 可选，按作者过滤
+    优先使用向量检索（ChromaDB + embedding），不可用时自动降级为关键词匹配。
     """
+    # 尝试向量检索
+    vector_results = _search_vector(query, n_results, username, db_path)
+    if vector_results:
+        return vector_results
+
+    # 降级：关键词匹配（不需要 API Key 或 ChromaDB）
+    return _search_keyword(query, n_results, username)
+
+
+def _search_vector(query, n_results=5, username=None, db_path=None):
+    """向量检索（需要 ChromaDB + ZHIPU_API_KEY）"""
     if not ensure_vector_store_ready(db_path=db_path):
         return []
 
     collection = get_collection(db_path=db_path)
-
-    # 先检查数据库是否有数据
     if collection.count() == 0:
         return []
 
-    embedding_client = get_embedding_client()
-    query_embedding = get_embeddings([query], client=embedding_client)[0]
+    try:
+        embedding_client = get_embedding_client()
+        query_embedding = get_embeddings([query], client=embedding_client)[0]
+    except Exception:
+        return []
 
-    where_filter = None
-    if username:
-        where_filter = {"username": username}
+    where_filter = {"username": username} if username else None
 
     results = collection.query(
         query_embeddings=[query_embedding],
@@ -329,6 +337,39 @@ def search_tweets(query, n_results=5, username=None, db_path=None):
             })
 
     return tweets
+
+
+def _search_keyword(query, n_results=5, username=None):
+    """关键词匹配降级方案（不需要 API Key 或 ChromaDB）"""
+    all_tweets = _load_json_store()
+    if not all_tweets:
+        return []
+
+    if username:
+        all_tweets = [t for t in all_tweets if t.get("metadata", {}).get("username") == username]
+
+    query_lower = query.lower()
+    keywords = [w.strip() for w in query_lower.split() if len(w.strip()) > 1]
+
+    scored = []
+    for t in all_tweets:
+        doc = (t.get("document", "") + " " + t.get("metadata", {}).get("summary", "")).lower()
+        score = sum(1 for kw in keywords if kw in doc)
+        if score > 0:
+            scored.append((score, t))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    results = []
+    for score, t in scored[:n_results]:
+        results.append({
+            "id": t.get("id", ""),
+            "document": t.get("document", ""),
+            "metadata": t.get("metadata", {}),
+            "distance": 1.0 - (score / max(len(keywords), 1)),
+        })
+
+    return results
 
 
 def _load_json_store(json_path=None):
