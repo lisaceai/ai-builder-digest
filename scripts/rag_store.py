@@ -217,75 +217,56 @@ def ingest_tweets(tweets_file, db_path=None):
             },
         })
 
-    # 尝试使用 ChromaDB + Embedding 入库
-    use_chromadb = HAS_CHROMADB and os.environ.get("ZHIPU_API_KEY", "")
-    ingested = 0
+    # 始终保存到 JSON 文件（确保数据不丢失）
+    existing = _load_json_store()
+    existing_ids = {t["id"] for t in existing}
+    new_records = [r for r in all_tweet_records if r["id"] not in existing_ids]
 
+    if not new_records:
+        print("All tweets already in store.")
+        return 0
+
+    # 先写入 JSON（保底存储）
+    print(f"Saving {len(new_records)} new tweets to JSON store...")
+    existing.extend(new_records)
+    _save_json_store(existing)
+    ingested = len(new_records)
+    print(f"Done. Total tweets in JSON store: {len(existing)}")
+
+    # 尝试同时写入 ChromaDB（可选，用于向量搜索）
+    use_chromadb = HAS_CHROMADB and os.environ.get("ZHIPU_API_KEY", "")
     if use_chromadb:
         try:
             collection = get_collection(db_path=db_path)
             embedding_client = get_embedding_client()
 
-            # 过滤掉已存在的推文
-            existing_ids = set(collection.get()["ids"])
-            new_records = [r for r in all_tweet_records if r["id"] not in existing_ids]
+            chroma_existing_ids = set(collection.get()["ids"])
+            chroma_new = [r for r in new_records if r["id"] not in chroma_existing_ids]
 
-            if not new_records:
-                print("All tweets already in database.")
-                return 0
+            if chroma_new:
+                ids = [r["id"] for r in chroma_new]
+                documents = [r["document"] for r in chroma_new]
+                metadatas = [r["metadata"] for r in chroma_new]
 
-            print(f"Ingesting {len(new_records)} new tweets...")
+                batch_size = 20
+                chroma_ingested = 0
+                for i in range(0, len(ids), batch_size):
+                    batch_ids = ids[i:i + batch_size]
+                    batch_docs = documents[i:i + batch_size]
+                    batch_meta = metadatas[i:i + batch_size]
+                    batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
+                    collection.add(
+                        ids=batch_ids,
+                        documents=batch_docs,
+                        metadatas=batch_meta,
+                        embeddings=batch_embeddings,
+                    )
+                    chroma_ingested += len(batch_ids)
+                    print(f"  ChromaDB: {chroma_ingested}/{len(ids)} tweets")
 
-            ids = [r["id"] for r in new_records]
-            documents = [r["document"] for r in new_records]
-            metadatas = [r["metadata"] for r in new_records]
-
-            # 批量生成 embedding 并入库（每批 20 条）
-            batch_size = 20
-            for i in range(0, len(ids), batch_size):
-                batch_ids = ids[i:i + batch_size]
-                batch_docs = documents[i:i + batch_size]
-                batch_meta = metadatas[i:i + batch_size]
-
-                batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
-
-                collection.add(
-                    ids=batch_ids,
-                    documents=batch_docs,
-                    metadatas=batch_meta,
-                    embeddings=batch_embeddings,
-                )
-                ingested += len(batch_ids)
-                print(f"  Ingested {ingested}/{len(ids)} tweets")
-
-            print(f"Done. Total tweets in DB: {collection.count()}")
-
-            # 同步保存到 JSON 文件
-            _sync_to_json(collection)
+                print(f"ChromaDB total: {collection.count()}")
         except Exception as e:
-            print(f"Warning: ChromaDB ingestion failed ({e}), falling back to JSON-only storage.")
-            use_chromadb = False
-
-    if not use_chromadb:
-        # JSON-only 模式：直接保存到 JSON 文件
-        if not os.environ.get("ZHIPU_API_KEY", ""):
-            print("ZHIPU_API_KEY not set, using JSON-only storage.")
-        if not HAS_CHROMADB:
-            print("ChromaDB not available, using JSON-only storage.")
-
-        existing = _load_json_store()
-        existing_ids = {t["id"] for t in existing}
-        new_records = [r for r in all_tweet_records if r["id"] not in existing_ids]
-
-        if not new_records:
-            print("All tweets already in JSON store.")
-            return 0
-
-        print(f"Saving {len(new_records)} new tweets to JSON store...")
-        existing.extend(new_records)
-        _save_json_store(existing)
-        ingested = len(new_records)
-        print(f"Done. Total tweets in JSON store: {len(existing)}")
+            print(f"Warning: ChromaDB ingestion failed ({e}), JSON store is still up to date.")
 
     return ingested
 
