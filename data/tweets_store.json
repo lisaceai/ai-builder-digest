@@ -1,1 +1,156 @@
-[]
+[
+  {
+    "id": "2031226767093240198",
+    "document": "最近遇到的三个人向我展示的演示文稿，我意识到都是用 Frontend Slides 制作的。看到这种新格式在实际应用中自然普及，感觉很有意思。\n\n原文：At least 3 people that I met recently showed their deck to me which I realized was made using Frontend Slides. Seeing real organic adoption of this new format https://t.co/6WHnMaOn5x",
+    "metadata": {
+      "username": "zarazhangrui",
+      "datetime": "Tue Mar 10 04:32:54 +0000 2026",
+      "url": "https://x.com/zarazhangrui/status/2031226767093240198",
+      "summary": "最近遇到的三个人向我展示的演示文稿，我意识到都是用 Frontend Slides 制作的。看到这种新格式在实际应用中自然普及，感觉很有意思。",
+      "original_text": "At least 3 people that I met recently showed their deck to me which I realized was made using Frontend Slides. Seeing real organic adoption of this new format https://t.co/6WHnMaOn5x"
+    }
+  },
+  {
+    "id": "2031195966729294143",
+    "document": "信息不足，请查看推文原文\n\n原文：lol this is actually amazing watch to the end",
+    "metadata": {
+      "username": "petergyang",
+      "datetime": "Tue Mar 10 02:30:30 +0000 2026",
+      "url": "https://x.com/petergyang/status/2031195966729294143",
+      "summary": "信息不足，请查看推文原文",
+      "original_text": "lol this is actually amazing watch to the end"
+    }
+  },
+  {
+    "id": "2031184234942214508",
+    "document": "未来五到十年，AI在农业、采矿和建筑等需要高度自动化的行业将产生真正的实际影响。随着农民平均年龄接近六十岁，即将到来的退休潮将导致劳动力缺口，而现实世界中的智能革命将填补这些空缺，而不是让整个行业突然消失。\n\n原文：\"The real impact of AI in the next five to ten years is going to be in farming, mining, and construction. These industries need autonomy. It couldn't come soon enough.\n\nIf you look at farmers, the average age of a farmer is in their late fifties. What does that mean ten years from now? Many of those farmers are going to be retiring, if they're not already retired. \n\nThis is where I think this intelligence revolution in the real world is really going to fill those gaps, rather than an entire industry suddenly being gone.\" — @qasar",
+    "metadata": {
+      "username": "lennysan",
+      "datetime": "Tue Mar 10 01:43:53 +0000 2026",
+      "url": "https://x.com/lennysan/status/2031184234942214508",
+      "summary": "未来五到十年，AI在农业、采矿和建筑等需要高度自动化的行业将产生真正的实际影响。随着农民平均年龄接近六十岁，即将到来的退休潮将导致劳动力缺口，而现实世界中的智能革命将填补这些空缺，而不是让整个行业突然消失。",
+      "original_text": "\"The real impact of AI in the next five to ten years is going to be in farming, mining, and construction. These industries need autonomy. It couldn't come soon enough.\n\nIf you look at farmers, the average age of a farmer is in their late fifties. What does that mean ten years from now? Many of those farmers are going to be retiring, if they're not already retired. \n\nThis is where I think this intelligence revolution in the real world is really going to fill those gaps, rather than an entire indu"
+    }
+  },
+  {
+    "id": "2031166429714956682",
+    "document": "如果你是产品经理，过去三个月内有没有在公司发布过生产环境的代码？请诚实回答。\n\n原文：If you're a PM, have you shipped production code at your company in the last 3 months? Be honest",
+    "metadata": {
+      "username": "petergyang",
+      "datetime": "Tue Mar 10 00:33:08 +0000 2026",
+      "url": "https://x.com/petergyang/status/2031166429714956682",
+      "summary": "如果你是产品经理，过去三个月内有没有在公司发布过生产环境的代码？请诚实回答。",
+      "original_text": "If you're a PM, have you shipped production code at your company in the last 3 months? Be honest"
+    }
+  },
+  {
+    "id": "2031135152349524125",
+    "document": "三天前，用自动研究工具调整了nanochat模型约两天，发现了约20个改进验证损失的变更。测试发现这些变更都能叠加并迁移到更大的模型，使排行榜上的“Time to GPT-2”缩短了约11%。代理自主完成了约700次实验的优化流程，发现了包括注意力缩放、正则化和AdamW参数等之前被忽略的调整点。这表明AI代理可以有效替代人工进行神经网络训练的迭代优化，未来所有前沿实验室都可能采用这种多代理协作的方式。\n\n原文：Three days ago I left autoresearch tuning nanochat for ~2 days on depth=12 model. It found ~20 changes that improved the validation loss. I tested these changes yesterday and all of them were additive and transferred to larger (depth=24) models. Stacking up all of these changes, today I measured that the leaderboard's \"Time to GPT-2\" drops from 2.02 hours to 1.80 hours (~11% improvement), this will be the new leaderboard entry. So yes, these are real improvements and they make an actual difference. I am mildly surprised that my very first naive attempt already worked this well on top of what I thought was already a fairly manually well-tuned project.\n\nThis is a first for me because I am very used to doing the iterative optimization of neural network training manually. You come up with ideas, you implement them, you check if they work (better validation loss), you come up with new ideas based on that, you read some papers for inspiration, etc etc. This is the bread and butter of what I do daily for 2 decades. Seeing the agent do this entire workflow end-to-end and all by itself as it worked through approx. 700 changes autonomously is wild. It really looked at the sequence of results of experiments and used that to plan the next ones. It's not novel, ground-breaking \"research\" (yet), but all the adjustments are \"real\", I didn't find them manually previously, and they stack up and actually improved nanochat. Among the bigger things e.g.:\n\n- It noticed an oversight that my parameterless QKnorm didn't have a scaler multiplier attached, so my attention was too diffuse. The agent found multipliers to sharpen it, pointing to future work.\n- It found that the Value Embeddings really like regularization and I wasn't applying any (oops).\n- It found that my banded attention was too conservative (i forgot to tune it).\n- It found that AdamW betas were all messed up.\n- It tuned the weight decay schedule.\n- It tuned the network initialization.\n\nThis is on top of all the tuning I've already done over a good amount of time. The exact commit is here, from this \"round 1\" of autoresearch. I am going to kick off \"round 2\", and in parallel I am looking at how multiple agents can collaborate to unlock parallelism.\nhttps://t.co/WAz8aIztKT\n\nAll LLM frontier labs will do this. It's the final boss battle. It's a lot more complex at scale of course - you don't just have a single train. py file to tune. But doing it is \"just engineering\" and it's going to work. You spin up a swarm of agents, you have them collaborate to tune smaller models, you promote the most promising ideas to increasingly larger scales, and humans (optionally) contribute on the edges.\n\nAnd more generally, *any* metric you care about that is reasonably efficient to evaluate (or that has more efficient proxy metrics such as training a smaller network) can be autoresearched by an agent swarm. It's worth thinking about whether your problem falls into this bucket too.",
+    "metadata": {
+      "username": "karpathy",
+      "datetime": "Mon Mar 09 22:28:51 +0000 2026",
+      "url": "https://x.com/karpathy/status/2031135152349524125",
+      "summary": "三天前，用自动研究工具调整了nanochat模型约两天，发现了约20个改进验证损失的变更。测试发现这些变更都能叠加并迁移到更大的模型，使排行榜上的“Time to GPT-2”缩短了约11%。代理自主完成了约700次实验的优化流程，发现了包括注意力缩放、正则化和AdamW参数等之前被忽略的调整点。这表明AI代理可以有效替代人工进行神经网络训练的迭代优化，未来所有前沿实验室都可能采用这种多代理协作的方式。",
+      "original_text": "Three days ago I left autoresearch tuning nanochat for ~2 days on depth=12 model. It found ~20 changes that improved the validation loss. I tested these changes yesterday and all of them were additive and transferred to larger (depth=24) models. Stacking up all of these changes, today I measured that the leaderboard's \"Time to GPT-2\" drops from 2.02 hours to 1.80 hours (~11% improvement), this will be the new leaderboard entry. So yes, these are real improvements and they make an actual differen"
+    }
+  },
+  {
+    "id": "2031126550834495891",
+    "document": "与其担心AI抢走工作，不如亲自上手试试看。这种观点强调通过实际使用来了解AI，或许能缓解对失业的焦虑。\n\n原文：If you're worried about AI taking your job, try actually using it (via @qasar) https://t.co/zEtISa4pWU",
+    "metadata": {
+      "username": "lennysan",
+      "datetime": "Mon Mar 09 21:54:40 +0000 2026",
+      "url": "https://x.com/lennysan/status/2031126550834495891",
+      "summary": "与其担心AI抢走工作，不如亲自上手试试看。这种观点强调通过实际使用来了解AI，或许能缓解对失业的焦虑。",
+      "original_text": "If you're worried about AI taking your job, try actually using it (via @qasar) https://t.co/zEtISa4pWU"
+    }
+  },
+  {
+    "id": "2031107609852325980",
+    "document": "听说英国小镇有人利用OpenClaw打造了一个短视频营销系统，实现了百万播放和稳定收入。这个AI员工被赋予任务后，能通过分析数据和制作内容，不断优化视频的钩子、格式和行动号召，直到找到爆款。这种将AI视为员工并让其自动运行反馈循环的思路非常独特，不仅让系统持续学习改进，还创造了可观的商业价值。\n\n原文：i heard about a guy in a small town in england who turned his openclaw into a short form video marketing machine\n\nmillions of views, steady app downloads, and revenue coming in every day\n\ni needed to find out how he was doing it\n\n1. spin up an ai “employee” using openclaw\n\n2. give it one job like grow your app with tiktokk\n\n3. give it access to tiktokk analytics, a browser to research and image/video tools to create content\n\n4. the openclaw studies your niche and starts generating slideshows and videos\n\n5. every post feeds performance data back into the system\n\nviews → hook quality\ndownloads → CTA quality\nrevenue → funnel quality\n\nthe openclaw then iterates on\n\n- new hooks\n- new formats\n- new CTAs\n\nuntil it finds winners\n\none of his posts hit 170k+ views\n\nand the system keeps improving because the analytics loop feeds back into the content generation\n\nso the agent slowly learns what works\n\nwhat i like about this is the framing\n\nmost people think about ai tools\n\nthis is different\n\nyou spin up an ai employee\n\nyou give it a job\n\nand let it run the loop\n\nthanks to @oliverhenry for coming on the @startupideaspod today\n\nmore like this soon, i will share the most interesting stories and gatekeep nothing \n\nthis episode was dripping in sauce \n\ni gotta try this and see if it works\n\nkinda wild if it does \n\nwatch",
+    "metadata": {
+      "username": "gregisenberg",
+      "datetime": "Mon Mar 09 20:39:25 +0000 2026",
+      "url": "https://x.com/gregisenberg/status/2031107609852325980",
+      "summary": "听说英国小镇有人利用OpenClaw打造了一个短视频营销系统，实现了百万播放和稳定收入。这个AI员工被赋予任务后，能通过分析数据和制作内容，不断优化视频的钩子、格式和行动号召，直到找到爆款。这种将AI视为员工并让其自动运行反馈循环的思路非常独特，不仅让系统持续学习改进，还创造了可观的商业价值。",
+      "original_text": "i heard about a guy in a small town in england who turned his openclaw into a short form video marketing machine\n\nmillions of views, steady app downloads, and revenue coming in every day\n\ni needed to find out how he was doing it\n\n1. spin up an ai “employee” using openclaw\n\n2. give it one job like grow your app with tiktokk\n\n3. give it access to tiktokk analytics, a browser to research and image/video tools to create content\n\n4. the openclaw studies your niche and starts generating slideshows and"
+    }
+  },
+  {
+    "id": "2031085362483994794",
+    "document": "考虑到当前AI领域正在创造巨额财富，现在是向富裕人群销售商品的好时机。这并不意味着这种现象是好的，甚至让人担心这种趋势的发展方向，但这确实是当下的真实情况。\n\n原文：Been thinking about this. With the amount of wealth being created right now in AI, it's a great time to be in business selling things to wealthy people.\n\n(Not saying this is good, and I worry about where this trends leads, but it's still true)",
+    "metadata": {
+      "username": "lennysan",
+      "datetime": "Mon Mar 09 19:11:00 +0000 2026",
+      "url": "https://x.com/lennysan/status/2031085362483994794",
+      "summary": "考虑到当前AI领域正在创造巨额财富，现在是向富裕人群销售商品的好时机。这并不意味着这种现象是好的，甚至让人担心这种趋势的发展方向，但这确实是当下的真实情况。",
+      "original_text": "Been thinking about this. With the amount of wealth being created right now in AI, it's a great time to be in business selling things to wealthy people.\n\n(Not saying this is good, and I worry about where this trends leads, but it's still true)"
+    }
+  },
+  {
+    "id": "2031075413133504801",
+    "document": "大多数AI产品倾向于限制模型，要求其遵循特定模板和格式。但Claude Code和OpenClaw展示了相反的思路，即提供工具和上下文后让模型自由发挥。这表明移除限制而非增加限制，才是发挥AI魔力的关键所在。\n\n原文：Most AI products try to box the model in.\n\nHere's a template. Follow this format. Stay in these lanes.\n\nBut Claude Code and OpenClaw showed the opposite approach:\n\nGive the model tools. Give it context. Let it loose.\n\nThe magic happens when you remove constraints, not add them",
+    "metadata": {
+      "username": "zarazhangrui",
+      "datetime": "Mon Mar 09 18:31:28 +0000 2026",
+      "url": "https://x.com/zarazhangrui/status/2031075413133504801",
+      "summary": "大多数AI产品倾向于限制模型，要求其遵循特定模板和格式。但Claude Code和OpenClaw展示了相反的思路，即提供工具和上下文后让模型自由发挥。这表明移除限制而非增加限制，才是发挥AI魔力的关键所在。",
+      "original_text": "Most AI products try to box the model in.\n\nHere's a template. Follow this format. Stay in these lanes.\n\nBut Claude Code and OpenClaw showed the opposite approach:\n\nGive the model tools. Give it context. Let it loose.\n\nThe magic happens when you remove constraints, not add them"
+    }
+  },
+  {
+    "id": "2031070907712811455",
+    "document": "AI工具排名有些出人意料，比如去背景工具removebg竟然排到了第16位。Google AI Studio的表现超过了Lovable，两者联手领先于其他氛围编程平台。前20名中还有3个AI聊天机器人伴侣，而Google共有4款产品跻身前50。\n\n原文：Surprises:\n- Perplexity higher than you'd think\n- removebg the 16th most popular AI tool\n- Google AI studio beating Lovable, and together they're ahead of all other vibe-coding platforms\n- JanitorAI is not what you expect\n- Three in the top 20 are AI chatbot friends\n- Google has four products in top 50",
+    "metadata": {
+      "username": "lennysan",
+      "datetime": "Mon Mar 09 18:13:34 +0000 2026",
+      "url": "https://x.com/lennysan/status/2031070907712811455",
+      "summary": "AI工具排名有些出人意料，比如去背景工具removebg竟然排到了第16位。Google AI Studio的表现超过了Lovable，两者联手领先于其他氛围编程平台。前20名中还有3个AI聊天机器人伴侣，而Google共有4款产品跻身前50。",
+      "original_text": "Surprises:\n- Perplexity higher than you'd think\n- removebg the 16th most popular AI tool\n- Google AI studio beating Lovable, and together they're ahead of all other vibe-coding platforms\n- JanitorAI is not what you expect\n- Three in the top 20 are AI chatbot friends\n- Google has four products in top 50"
+    }
+  },
+  {
+    "id": "2031062081710236084",
+    "document": "未来五到十年真正的AI革命将发生在物理世界，自动驾驶和农业机器人等应用不仅能挽救生命，还能填补卡车运输等危险行业日益严重的劳动力缺口。Qasar认为中美AI公司的比较存在类别错误，因为像华为这样的中国企业背负着国家使命而非单纯的利润目标，这使其与美国公司处于不同的竞争维度。他建议将工业革命作为AI发展的思维模型，在解决负面影响的同时推动技术进步，并强调创始人应通过丰富的人生经历来培养商业品味。此外，Qasar指出创业公司应尽早展现市场吸引力，并将第一次创业视为积累经验的练习而非必须成功的终极目标。\n\n原文：My biggest takeaways from @qasar:\n\n1. The real AI revolution over the next 5 to 10 years will happen in the physical world, not in software. While everyone obsesses over ChatGPT, Claude and coding agents, the real impact will come from autonomous vehicles, mining robots, and farming equipment. They’ll save lives (over 30,000 die annually in U.S. car accidents), enable mobility for disabled people, solve labor shortages in dangerous industries where nobody wants to work, and much more.\n\n2. AI isn’t replacing jobs in industries like trucking and farming—it’s arriving just in time to fill a labor gap that already exists. The average age of a farmer in the U.S. is in the late 50s. Long-haul trucking jobs go unfilled not because people can’t do them but because the tradeoff isn’t worth it anymore; a family can choose DoorDash or Uber so the parent can pick up their kid. Qasar’s view is that physical AI will fill gaps created by demographic shifts and changing preferences, not displace workers who want those roles. He’s careful to say this doesn’t mean there are no downsides, but that the framing of “AI is coming for your job” misses the more immediate reality.\n\n3. Comparing Chinese AI companies to American AI companies is a category error. Qasar uses Huawei as his example: the company’s name means “China’s ambition,” roughly a quarter of its employees are Communist Party members, and its goal is not to grow profits but to extend the state. So when people say Chinese EVs are outcompeting Detroit, they’re comparing a government-backed entity with no profit constraint to companies like Rivian that get hammered by public investors for losing money. Qasar says that if American companies were freed from profit expectations the same way, they’d field comparable products. The point isn’t that China is incompetent or not a serious competitor; it’s that the comparison framework most people use is wrong.\n\n4. The Industrial Revolution is the best mental model for AI. Just like the late 1800s brought child labor and monopolies but also unprecedented access to healthcare, heating, cooling, and material goods, AI will have downsides we must address while delivering massive benefits. The key: don’t pump the brakes on technology to protect jobs—that hurts the people you’re trying to help most. Find solutions that account for workers while enabling progress.\n\n5. Building under the radar can be your competitive advantage. Qasar built Applied Intuition for nearly a decade without a social media presence. One of the company’s early core values was “Our best work is done alone and quietly.” His reasoning: every minute spent on a podcast, a post, or content for public consumption is a minute not spent on customers and the product. Qasar adds an important caveat—he could afford to stay quiet because he was already known in the ecosystem. Founders without an existing network may need the visibility that public presence creates.\n\n6. Qasar thinks most Silicon Valley CEOs lack taste—both in the artistic sense and in the sense of making good operational decisions—because their life experience is too narrow. A founder who grew up in Cupertino, went to Berkeley, and immediately started a company has never experienced what it’s like to be at the bottom of a 100,000-person organization. Qasar spent over a decade at GM and Bosch and says that experience—the bureaucracy, the bad tools, the disconnected leadership—directly informs how he leads Applied Intuition today. His broader point is that taste comes from exposure to a wide range of human experience: backpacking, reading old books, working in different cultures and industries.\n\n7. Successful companies almost always show traction early. If you’re two years in and the market isn’t giving you increasingly specific signals about what to build, consider resetting. The foundation might be wrong—co-founders, market, or life phase. Your first startup is practice; treat it as building the muscle of being a founder, not as your magnum opus.\n\n8. Emotions are a filter that distorts decision-making, and the goal should be to remove that filter so the “raw image” of the decision comes through. Qasar doesn’t mean leaders shouldn’t have empathy; he means that attachment to your own idea, the desire to be right, and the tribal instinct to follow the loudest voice are all emotional distortions. His practical heuristic: the same decision, presented to multiple people independently in the company, should produce the same result. If it doesn’t, some emotional filter is warping the signal. This connects to his broader philosophy of creating a culture where the best idea wins regardless of who proposed it or how senior they are.\n\n9. Qasar’s advice on company values: don’t invent them philosophically. Instead, write down the 5 to 10 things that explain why your company is already successful, and those become your values. Applied Intuition’s values include “Move fast, move safe,” “Never disappoint the customer,” “Technical mastery,” “High output matters,” “Laugh a lot,” and “Half of the work is follow-up.”\n\n10. Treat your first startup as a zero—a practice round, not destiny. Qasar tells founders leaving Applied Intuition to start companies that their first three years will likely produce nothing, and that’s fine. Founding is a craft, like woodworking. If your first table is wobbly, you don’t quit—you build another one. He thinks a lot of founders, especially first-timers, put so much pressure on themselves to succeed immediately that they miss the real value of the experience: learning and building the muscle. His own third company is the most successful by far, and he sees this pattern repeatedly. There are entire funds focused exclusively on multi-time founders for exactly this reason.",
+    "metadata": {
+      "username": "lennysan",
+      "datetime": "Mon Mar 09 17:38:30 +0000 2026",
+      "url": "https://x.com/lennysan/status/2031062081710236084",
+      "summary": "未来五到十年真正的AI革命将发生在物理世界，自动驾驶和农业机器人等应用不仅能挽救生命，还能填补卡车运输等危险行业日益严重的劳动力缺口。Qasar认为中美AI公司的比较存在类别错误，因为像华为这样的中国企业背负着国家使命而非单纯的利润目标，这使其与美国公司处于不同的竞争维度。他建议将工业革命作为AI发展的思维模型，在解决负面影响的同时推动技术进步，并强调创始人应通过丰富的人生经历来培养商业品味。此外，Qasar指出创业公司应尽早展现市场吸引力，并将第一次创业视为积累经验的练习而非必须成功的终极目标。",
+      "original_text": "My biggest takeaways from @qasar:\n\n1. The real AI revolution over the next 5 to 10 years will happen in the physical world, not in software. While everyone obsesses over ChatGPT, Claude and coding agents, the real impact will come from autonomous vehicles, mining robots, and farming equipment. They’ll save lives (over 30,000 die annually in U.S. car accidents), enable mobility for disabled people, solve labor shortages in dangerous industries where nobody wants to work, and much more.\n\n2. AI isn"
+    }
+  },
+  {
+    "id": "2031039919947481217",
+    "document": "未来两年内容创作领域的竞争将变得极其激烈，大量优秀人才面临裁员，加上AI生成内容的普及，在Instagram、TikTok和YouTube等平台上从零开始积累粉丝将变得非常困难。\n\n原文：Content Creation is going to get 10x more competitive over the next 2 years. \n\nSo many smart driven people will be laid off + AI content will make it very hard to build a following on IG+TT+YT from 0.",
+    "metadata": {
+      "username": "rileybrown",
+      "datetime": "Mon Mar 09 16:10:26 +0000 2026",
+      "url": "https://x.com/rileybrown/status/2031039919947481217",
+      "summary": "未来两年内容创作领域的竞争将变得极其激烈，大量优秀人才面临裁员，加上AI生成内容的普及，在Instagram、TikTok和YouTube等平台上从零开始积累粉丝将变得非常困难。",
+      "original_text": "Content Creation is going to get 10x more competitive over the next 2 years. \n\nSo many smart driven people will be laid off + AI content will make it very hard to build a following on IG+TT+YT from 0."
+    }
+  },
+  {
+    "id": "2031006858807300267",
+    "document": "AI将在未来十年大幅增加单人公司的数量，预计会出现1家估值百亿、10家十亿及更多中小规模的单人企业。这意味着个人创业者将有机会利用AI技术打造出极具商业价值的公司。\n\n原文：ai is going to massively increase the number of one person companies within the next ~10 years\n\n- 1 one person $10b company\n- 10 one person $1b companies\n- 100 one person $100m companies\n- 1,000 one person $10m companies\n- 10,000 one person $1m companies",
+    "metadata": {
+      "username": "gregisenberg",
+      "datetime": "Mon Mar 09 13:59:04 +0000 2026",
+      "url": "https://x.com/gregisenberg/status/2031006858807300267",
+      "summary": "AI将在未来十年大幅增加单人公司的数量，预计会出现1家估值百亿、10家十亿及更多中小规模的单人企业。这意味着个人创业者将有机会利用AI技术打造出极具商业价值的公司。",
+      "original_text": "ai is going to massively increase the number of one person companies within the next ~10 years\n\n- 1 one person $10b company\n- 10 one person $1b companies\n- 100 one person $100m companies\n- 1,000 one person $10m companies\n- 10,000 one person $1m companies"
+    }
+  },
+  {
+    "id": "2030852448483737639",
+    "document": "有人开发了一个名为Paper的Figma工具，让AI Agent能够进行设计工作。通过连接Claude Code或OpenClaw，AI可以更轻松地创建设计并迭代，甚至能构建和部署React应用。这段视频演示了从安装工具到最终部署的完整流程，展示了AI在设计领域的实际应用能力。\n\n原文：yup.. Someone made a Figma for AI Agents\n\nClaude Code and OpenClaw can now create designs 10x easier...\n\n00:00 Intro\n00:46 Installing @paper \n01:56 Connecting Claude Code to Paper\n03:38 Plan for Design\n06:23 Claude Code designs\n08:28 Iterating\n11:48 Building the React app\n13:37 Deploying",
+    "metadata": {
+      "username": "rileybrown",
+      "datetime": "Mon Mar 09 03:45:29 +0000 2026",
+      "url": "https://x.com/rileybrown/status/2030852448483737639",
+      "summary": "有人开发了一个名为Paper的Figma工具，让AI Agent能够进行设计工作。通过连接Claude Code或OpenClaw，AI可以更轻松地创建设计并迭代，甚至能构建和部署React应用。这段视频演示了从安装工具到最终部署的完整流程，展示了AI在设计领域的实际应用能力。",
+      "original_text": "yup.. Someone made a Figma for AI Agents\n\nClaude Code and OpenClaw can now create designs 10x easier...\n\n00:00 Intro\n00:46 Installing @paper \n01:56 Connecting Claude Code to Paper\n03:38 Plan for Design\n06:23 Claude Code designs\n08:28 Iterating\n11:48 Building the React app\n13:37 Deploying"
+    }
+  }
+]
