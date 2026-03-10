@@ -1,7 +1,7 @@
 """
 RAG 向量存储模块
-使用 ChromaDB + 智谱 Embedding 管理推文向量数据库
-同时维护 JSON 文件存储，确保趋势分析和统计不依赖 ChromaDB
+使用 Pinecone + 智谱 Embedding 管理推文向量数据库
+同时维护 JSON 文件存储，确保趋势分析和统计不依赖 Pinecone
 """
 
 import os
@@ -12,17 +12,18 @@ from datetime import datetime, timedelta
 from openai import OpenAI
 
 try:
-    import chromadb
-    HAS_CHROMADB = True
+    from pinecone import Pinecone, ServerlessSpec
+    HAS_PINECONE = True
 except ImportError:
-    HAS_CHROMADB = False
+    HAS_PINECONE = False
 
 
-# ChromaDB 持久化路径
-DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "chroma_db")
-
-# JSON 存储路径（不依赖 ChromaDB）
+# JSON 存储路径（不依赖 Pinecone）
 TWEETS_JSON_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "tweets_store.json")
+
+# Pinecone 配置
+PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "tweets")
+EMBEDDING_DIM = 2048  # 智谱 embedding-3 维度
 
 
 def get_embedding_client():
@@ -53,6 +54,27 @@ def get_embeddings(texts, client=None):
     return embeddings
 
 
+def get_pinecone_index():
+    """获取 Pinecone 索引（不存在则自动创建）"""
+    if not HAS_PINECONE:
+        raise ImportError("pinecone 未安装，请运行 pip install pinecone")
+    api_key = os.environ.get("PINECONE_API_KEY", "")
+    if not api_key:
+        raise ValueError("PINECONE_API_KEY 环境变量未设置")
+
+    pc = Pinecone(api_key=api_key)
+    index_name = PINECONE_INDEX_NAME
+
+    existing = [idx.name for idx in pc.list_indexes()]
+    if index_name not in existing:
+        pc.create_index(
+            name=index_name,
+            dimension=EMBEDDING_DIM,
+            metric="cosine",
+            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+        )
+
+    return pc.Index(index_name)
 
 
 def _filter_tweets_by_days(tweets, days=None):
@@ -86,17 +108,18 @@ def _filter_tweets_by_days(tweets, days=None):
     return filtered
 
 
-def ensure_vector_store_ready(db_path=None):
+def ensure_vector_store_ready():
     """
-    当向量库为空时，尝试使用 JSON 存储数据回填到 ChromaDB。
+    当向量库为空时，尝试使用 JSON 存储数据回填到 Pinecone。
     返回 True 表示当前可用向量检索，False 表示不可用。
     """
-    if not HAS_CHROMADB or not os.environ.get("ZHIPU_API_KEY", ""):
+    if not HAS_PINECONE or not os.environ.get("PINECONE_API_KEY", "") or not os.environ.get("ZHIPU_API_KEY", ""):
         return False
 
     try:
-        collection = get_collection(db_path=db_path)
-        if collection.count() > 0:
+        index = get_pinecone_index()
+        stats = index.describe_index_stats()
+        if stats.total_vector_count > 0:
             return True
 
         records = _load_json_store()
@@ -118,57 +141,18 @@ def ensure_vector_store_ready(db_path=None):
             batch_docs = docs[i:i + batch_size]
             batch_meta = metas[i:i + batch_size]
             batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
-            collection.add(
-                ids=batch_ids,
-                documents=batch_docs,
-                metadatas=batch_meta,
-                embeddings=batch_embeddings,
-            )
+            vectors = [
+                {"id": vid, "values": emb, "metadata": meta}
+                for vid, emb, meta in zip(batch_ids, batch_embeddings, batch_meta)
+            ]
+            index.upsert(vectors=vectors)
             restored += len(batch_ids)
 
-        print(f"Hydrated ChromaDB from JSON store: {restored} tweets")
-        return collection.count() > 0
+        print(f"Hydrated Pinecone from JSON store: {restored} tweets")
+        return index.describe_index_stats().total_vector_count > 0
     except Exception as e:
-        print(f"Warning: failed to hydrate ChromaDB from JSON ({e})")
+        print(f"Warning: failed to hydrate Pinecone from JSON ({e})")
         return False
-
-
-def get_all_vector_tweets(db_path=None, days=None):
-    """从向量库读取全部推文（可按天数过滤）"""
-    if not ensure_vector_store_ready(db_path=db_path):
-        return []
-
-    try:
-        collection = get_collection(db_path=db_path)
-        results = collection.get(include=["metadatas", "documents"])
-        tweets = []
-        for i, doc_id in enumerate(results.get("ids", [])):
-            tweets.append({
-                "id": doc_id,
-                "document": results["documents"][i],
-                "metadata": results["metadatas"][i],
-            })
-        return _filter_tweets_by_days(tweets, days=days)
-    except Exception:
-        return []
-
-def get_chroma_client(db_path=None):
-    """获取 ChromaDB 持久化客户端"""
-    if not HAS_CHROMADB:
-        raise ImportError("chromadb 未安装，请运行 pip install chromadb")
-    path = db_path or DEFAULT_DB_PATH
-    os.makedirs(path, exist_ok=True)
-    return chromadb.PersistentClient(path=path)
-
-
-def get_collection(client=None, db_path=None):
-    """获取或创建推文集合"""
-    if client is None:
-        client = get_chroma_client(db_path)
-    return client.get_or_create_collection(
-        name="tweets",
-        metadata={"description": "AI Builder 推文向量集合"}
-    )
 
 
 def tweet_id_hash(tweet):
@@ -183,9 +167,9 @@ def tweet_id_hash(tweet):
 
 def ingest_tweets(tweets_file, db_path=None):
     """
-    将推文数据导入 ChromaDB 向量数据库
+    将推文数据导入 Pinecone 向量数据库
     tweets_file: summarized_tweets.json 路径
-    当 ZHIPU_API_KEY 未设置或 ChromaDB 不可用时，仅保存到 JSON 文件
+    当 PINECONE_API_KEY/ZHIPU_API_KEY 未设置或 Pinecone 不可用时，仅保存到 JSON 文件
     """
     with open(tweets_file, "r", encoding="utf-8") as f:
         tweets = json.load(f)
@@ -227,115 +211,92 @@ def ingest_tweets(tweets_file, db_path=None):
         print("All tweets already in store.")
         return 0
 
-    # 先写入 JSON（保底存储）
     print(f"Saving {len(new_records)} new tweets to JSON store...")
     existing.extend(new_records)
     _save_json_store(existing)
     ingested = len(new_records)
     print(f"Done. Total tweets in JSON store: {len(existing)}")
 
-    # 尝试同时写入 ChromaDB（可选，用于向量搜索）
-    use_chromadb = HAS_CHROMADB and os.environ.get("ZHIPU_API_KEY", "")
-    if use_chromadb:
+    # 尝试同时写入 Pinecone（可选，用于向量搜索）
+    use_pinecone = HAS_PINECONE and os.environ.get("PINECONE_API_KEY", "") and os.environ.get("ZHIPU_API_KEY", "")
+    if use_pinecone:
         try:
-            collection = get_collection(db_path=db_path)
+            index = get_pinecone_index()
             embedding_client = get_embedding_client()
 
-            chroma_existing_ids = set(collection.get()["ids"])
-            chroma_new = [r for r in new_records if r["id"] not in chroma_existing_ids]
+            ids = [r["id"] for r in new_records]
+            documents = [r["document"] for r in new_records]
+            metadatas = [r["metadata"] for r in new_records]
 
-            if chroma_new:
-                ids = [r["id"] for r in chroma_new]
-                documents = [r["document"] for r in chroma_new]
-                metadatas = [r["metadata"] for r in chroma_new]
+            batch_size = 20
+            pinecone_ingested = 0
+            for i in range(0, len(ids), batch_size):
+                batch_ids = ids[i:i + batch_size]
+                batch_docs = documents[i:i + batch_size]
+                batch_meta = metadatas[i:i + batch_size]
+                batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
+                vectors = [
+                    {"id": vid, "values": emb, "metadata": meta}
+                    for vid, emb, meta in zip(batch_ids, batch_embeddings, batch_meta)
+                ]
+                index.upsert(vectors=vectors)
+                pinecone_ingested += len(batch_ids)
+                print(f"  Pinecone: {pinecone_ingested}/{len(ids)} tweets")
 
-                batch_size = 20
-                chroma_ingested = 0
-                for i in range(0, len(ids), batch_size):
-                    batch_ids = ids[i:i + batch_size]
-                    batch_docs = documents[i:i + batch_size]
-                    batch_meta = metadatas[i:i + batch_size]
-                    batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
-                    collection.add(
-                        ids=batch_ids,
-                        documents=batch_docs,
-                        metadatas=batch_meta,
-                        embeddings=batch_embeddings,
-                    )
-                    chroma_ingested += len(batch_ids)
-                    print(f"  ChromaDB: {chroma_ingested}/{len(ids)} tweets")
-
-                print(f"ChromaDB total: {collection.count()}")
+            stats = index.describe_index_stats()
+            print(f"Pinecone total: {stats.total_vector_count}")
         except Exception as e:
-            print(f"Warning: ChromaDB ingestion failed ({e}), JSON store is still up to date.")
+            print(f"Warning: Pinecone ingestion failed ({e}), JSON store is still up to date.")
 
     return ingested
-
-
-def _sync_to_json(collection):
-    """将 ChromaDB 数据同步到 JSON 文件"""
-    try:
-        results = collection.get(include=["metadatas", "documents"])
-        tweets = []
-        for i, doc_id in enumerate(results["ids"]):
-            tweets.append({
-                "id": doc_id,
-                "document": results["documents"][i],
-                "metadata": results["metadatas"][i],
-            })
-        _save_json_store(tweets)
-        print(f"Synced {len(tweets)} tweets to {TWEETS_JSON_PATH}")
-    except Exception as e:
-        print(f"Warning: Failed to sync to JSON: {e}")
 
 
 def search_tweets(query, n_results=5, username=None, db_path=None):
     """
     检索与查询相关的推文
-    优先使用向量检索（ChromaDB + embedding），不可用时自动降级为关键词匹配。
+    优先使用向量检索（Pinecone + embedding），不可用时自动降级为关键词匹配。
     """
-    # 尝试向量检索
-    vector_results = _search_vector(query, n_results, username, db_path)
+    vector_results = _search_vector(query, n_results, username)
     if vector_results:
         return vector_results
 
-    # 降级：关键词匹配（不需要 API Key 或 ChromaDB）
+    # 降级：关键词匹配
     return _search_keyword(query, n_results, username)
 
 
-def _search_vector(query, n_results=5, username=None, db_path=None):
-    """向量检索（需要 ChromaDB + ZHIPU_API_KEY）"""
-    if not ensure_vector_store_ready(db_path=db_path):
-        return []
-
-    collection = get_collection(db_path=db_path)
-    if collection.count() == 0:
+def _search_vector(query, n_results=5, username=None):
+    """向量检索（需要 Pinecone + ZHIPU_API_KEY）"""
+    if not HAS_PINECONE or not os.environ.get("PINECONE_API_KEY", "") or not os.environ.get("ZHIPU_API_KEY", ""):
         return []
 
     try:
+        index = get_pinecone_index()
         embedding_client = get_embedding_client()
         query_embedding = get_embeddings([query], client=embedding_client)[0]
     except Exception:
         return []
 
-    where_filter = {"username": username} if username else None
+    where_filter = {"username": {"$eq": username}} if username else None
 
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=n_results,
-        where=where_filter,
-        include=["documents", "metadatas", "distances"]
-    )
+    try:
+        results = index.query(
+            vector=query_embedding,
+            top_k=n_results,
+            filter=where_filter,
+            include_metadata=True,
+        )
+    except Exception:
+        return []
 
     tweets = []
-    if results and results["ids"] and results["ids"][0]:
-        for i, doc_id in enumerate(results["ids"][0]):
-            tweets.append({
-                "id": doc_id,
-                "document": results["documents"][0][i],
-                "metadata": results["metadatas"][0][i],
-                "distance": results["distances"][0][i],
-            })
+    for match in results.matches:
+        meta = match.metadata or {}
+        tweets.append({
+            "id": match.id,
+            "document": meta.get("summary", "") or meta.get("original_text", ""),
+            "metadata": meta,
+            "distance": 1.0 - match.score,
+        })
 
     return tweets
 
@@ -370,7 +331,7 @@ def _extract_keywords(query):
 
 
 def _search_keyword(query, n_results=5, username=None):
-    """关键词匹配降级方案（不需要 API Key 或 ChromaDB）"""
+    """关键词匹配降级方案（不需要 API Key 或 Pinecone）"""
     all_tweets = _load_json_store()
     if not all_tweets:
         return []
@@ -427,48 +388,15 @@ def _save_json_store(tweets, json_path=None):
 def get_all_tweets_metadata(db_path=None, days=None):
     """
     获取所有推文的元数据（用于趋势分析）
-    优先从 ChromaDB 读取，fallback 到 JSON 文件
+    从 JSON 文件读取（Pinecone 不支持全量扫描）
     days: 可选，只返回最近 N 天内的推文
     """
-    tweets = []
-    tweets_by_id = {}
-
-    # 读取 ChromaDB（如可用）
-    if HAS_CHROMADB:
-        try:
-            collection = get_collection(db_path=db_path)
-            if collection.count() > 0:
-                results = collection.get(include=["metadatas", "documents"])
-                for i, doc_id in enumerate(results.get("ids", [])):
-                    record = {
-                        "id": doc_id,
-                        "document": results["documents"][i],
-                        "metadata": results["metadatas"][i],
-                    }
-                    tweets_by_id[doc_id] = record
-                    tweets.append(record)
-        except Exception:
-            pass
-
-    # 始终读取 JSON，并把 ChromaDB 缺失的数据补齐。
-    # 这样可以避免「ChromaDB 有旧数据、JSON 有新数据」时统计为 0 的问题。
-    json_tweets = _load_json_store()
-    if not tweets:
-        tweets = json_tweets
-    else:
-        for t in json_tweets:
-            tid = t.get("id")
-            if tid and tid in tweets_by_id:
-                continue
-            tweets.append(t)
-
+    tweets = _load_json_store()
     return _filter_tweets_by_days(tweets, days=days)
 
 
 def get_all_tweets_stats(days=None):
-    """
-    获取推文统计（不依赖 ChromaDB）
-    """
+    """获取推文统计（不依赖 Pinecone）"""
     tweets = get_all_tweets_metadata(days=days)
     builder_counts = {}
     for t in tweets:
@@ -487,4 +415,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     count = ingest_tweets(sys.argv[1])
-    print(f"Ingested {count} tweets into ChromaDB.")
+    print(f"Ingested {count} tweets into Pinecone.")
