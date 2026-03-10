@@ -370,23 +370,29 @@ def _save_json_store(tweets, json_path=None):
 def get_all_tweets_metadata(db_path=None, days=None):
     """
     获取所有推文的元数据（用于趋势分析）
-    优先从 JSON 文件读取，fallback 到 ChromaDB
+    优先从 ChromaDB 读取，fallback 到 JSON 文件
     days: 可选，只返回最近 N 天内的推文
     """
-    tweets = _load_json_store()
+    tweets = []
 
-    if not tweets and HAS_CHROMADB:
+    # 优先从 ChromaDB 读取
+    if HAS_CHROMADB:
         try:
             collection = get_collection(db_path=db_path)
-            results = collection.get(include=["metadatas", "documents"])
-            for i, doc_id in enumerate(results["ids"]):
-                tweets.append({
-                    "id": doc_id,
-                    "document": results["documents"][i],
-                    "metadata": results["metadatas"][i],
-                })
+            if collection.count() > 0:
+                results = collection.get(include=["metadatas", "documents"])
+                for i, doc_id in enumerate(results["ids"]):
+                    tweets.append({
+                        "id": doc_id,
+                        "document": results["documents"][i],
+                        "metadata": results["metadatas"][i],
+                    })
         except Exception:
             pass
+
+    # ChromaDB 没有数据时，fallback 到 JSON
+    if not tweets:
+        tweets = _load_json_store()
 
     return _filter_tweets_by_days(tweets, days=days)
 
