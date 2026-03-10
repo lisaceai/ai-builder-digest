@@ -1,7 +1,7 @@
 """
 RAG 向量存储模块
 使用 Pinecone + 智谱 Embedding 管理推文向量数据库
-同时维护 JSON 文件存储，确保趋势分析和统计不依赖 Pinecone
+本地 JSON 作为运行时缓存（启动时从 Pinecone 同步），不再提交到 git
 """
 
 import os
@@ -108,54 +108,61 @@ def _filter_tweets_by_days(tweets, days=None):
     return filtered
 
 
+def _sync_from_pinecone():
+    """从 Pinecone 全量拉取所有推文 metadata，写入本地 JSON 缓存。返回同步条数。"""
+    index = get_pinecone_index()
+
+    # list() 返回 ID 分页生成器
+    all_ids = []
+    for ids_page in index.list():
+        all_ids.extend(ids_page)
+
+    if not all_ids:
+        return 0
+
+    tweets = []
+    for i in range(0, len(all_ids), 1000):
+        batch_ids = all_ids[i:i + 1000]
+        result = index.fetch(ids=batch_ids)
+        for vid, vec in result.vectors.items():
+            meta = dict(vec.metadata or {})
+            tweets.append({
+                "id": vid,
+                "document": meta.get("document", ""),
+                "metadata": meta,
+            })
+
+    _save_json_store(tweets)
+    print(f"Synced {len(tweets)} tweets from Pinecone to local cache")
+    return len(tweets)
+
+
 def ensure_vector_store_ready():
     """
-    当向量库为空时，尝试使用 JSON 存储数据回填到 Pinecone。
-    返回 True 表示当前可用向量检索，False 表示不可用。
+    启动时将 Pinecone 数据同步到本地 JSON 缓存（供趋势分析/关键词搜索使用）。
+    本地缓存条数 < Pinecone 时触发全量同步。
+    返回 True 表示 Pinecone 可用，False 表示不可用。
     """
-    if not HAS_PINECONE or not os.environ.get("PINECONE_API_KEY", "") or not os.environ.get("ZHIPU_API_KEY", ""):
+    if not HAS_PINECONE or not os.environ.get("PINECONE_API_KEY", ""):
         return False
 
     try:
         index = get_pinecone_index()
-        stats = index.describe_index_stats()
-        if stats.total_vector_count > 0:
+        pinecone_count = index.describe_index_stats().total_vector_count
+
+        if pinecone_count == 0:
+            return False
+
+        local_count = len(_load_json_store())
+        if local_count >= pinecone_count:
+            print(f"Local cache up to date ({local_count} tweets)")
             return True
 
-        records = _load_json_store()
-        if not records:
-            return False
-
-        ids = [r["id"] for r in records if r.get("id") and r.get("document")]
-        docs = [r["document"] for r in records if r.get("id") and r.get("document")]
-        metas = [r.get("metadata", {}) for r in records if r.get("id") and r.get("document")]
-
-        if not ids:
-            return False
-
-        embedding_client = get_embedding_client()
-        batch_size = 20
-        restored = 0
-        for i in range(0, len(ids), batch_size):
-            batch_ids = ids[i:i + batch_size]
-            batch_docs = docs[i:i + batch_size]
-            batch_meta = metas[i:i + batch_size]
-            batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
-            vectors = [
-                {
-                    "id": vid,
-                    "values": emb,
-                    "metadata": {**meta, "document": batch_docs[j]},
-                }
-                for j, (vid, emb, meta) in enumerate(zip(batch_ids, batch_embeddings, batch_meta))
-            ]
-            index.upsert(vectors=vectors)
-            restored += len(batch_ids)
-
-        print(f"Hydrated Pinecone from JSON store: {restored} tweets")
-        return index.describe_index_stats().total_vector_count > 0
+        print(f"Local cache ({local_count}) behind Pinecone ({pinecone_count}), syncing...")
+        synced = _sync_from_pinecone()
+        return synced > 0
     except Exception as e:
-        print(f"Warning: failed to hydrate Pinecone from JSON ({e})")
+        print(f"Warning: failed to sync from Pinecone ({e})")
         return False
 
 
@@ -207,7 +214,7 @@ def ingest_tweets(tweets_file, db_path=None):
             },
         })
 
-    # 始终保存到 JSON 文件（确保数据不丢失）
+    # 更新本地 JSON 缓存（运行时使用，非持久化存储）
     existing = _load_json_store()
     existing_ids = {t["id"] for t in existing}
     new_records = [r for r in all_tweet_records if r["id"] not in existing_ids]
@@ -216,11 +223,10 @@ def ingest_tweets(tweets_file, db_path=None):
         print("All tweets already in store.")
         return 0
 
-    print(f"Saving {len(new_records)} new tweets to JSON store...")
     existing.extend(new_records)
     _save_json_store(existing)
     ingested = len(new_records)
-    print(f"Done. Total tweets in JSON store: {len(existing)}")
+    print(f"New tweets: {ingested}, local cache total: {len(existing)}")
 
     # 尝试同时写入 Pinecone（可选，用于向量搜索）
     use_pinecone = HAS_PINECONE and os.environ.get("PINECONE_API_KEY", "") and os.environ.get("ZHIPU_API_KEY", "")

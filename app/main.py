@@ -23,16 +23,14 @@ app = FastAPI(title="AI Builder 管理器")
 
 @app.on_event("startup")
 async def startup_event():
-    """启动时从 JSON 回填 Pinecone，确保向量搜索可用"""
+    """启动时将 Pinecone 数据同步到本地缓存，供趋势分析和关键词搜索使用"""
     from scripts.rag_store import ensure_vector_store_ready
     try:
         ready = ensure_vector_store_ready()
-        if ready:
-            print("Pinecone hydrated from JSON store on startup.")
-        else:
-            print("Pinecone hydration skipped (no data or missing API key).")
+        if not ready:
+            print("Pinecone sync skipped (no data or missing API key).")
     except Exception as e:
-        print(f"Warning: Pinecone startup hydration failed: {e}")
+        print(f"Warning: Pinecone startup sync failed: {e}")
 
 
 # 配置路径
@@ -193,7 +191,7 @@ async def health_check():
     except Exception:
         pass
 
-    all_ok = zhipu_key_set and pinecone_key_set and json_count > 0
+    all_ok = zhipu_key_set and pinecone_ok
 
     return {
         "status": "ok" if all_ok else "degraded",
@@ -201,13 +199,13 @@ async def health_check():
             "zhipu_api_key": "configured" if zhipu_key_set else "MISSING - 请设置 ZHIPU_API_KEY",
             "pinecone_api_key": "configured" if pinecone_key_set else "MISSING - 请设置 PINECONE_API_KEY",
             "pinecone": f"ok ({pinecone_count} tweets)" if pinecone_ok else "unavailable (will use keyword fallback)",
-            "json_store": f"ok ({json_count} tweets)" if json_count > 0 else "empty - 请先运行 Daily Digest 工作流",
+            "local_cache": f"ok ({json_count} tweets)" if json_count > 0 else "empty - app 启动时自动从 Pinecone 同步",
         },
         "rag_features": {
-            "qa_smart": "available" if zhipu_key_set and pinecone_key_set and json_count > 0 else "unavailable",
+            "qa_smart": "available" if all_ok else "unavailable",
             "qa_keyword": "available" if json_count > 0 else "unavailable",
-            "trends": "available" if zhipu_key_set and json_count > 0 else "unavailable",
-            "stats": "available" if json_count > 0 else "unavailable",
+            "trends": "available" if all_ok else "unavailable",
+            "stats": "available" if pinecone_ok else "unavailable",
         },
     }
 

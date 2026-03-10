@@ -12,8 +12,6 @@ on:
         required: false
         default: '50'
 
-permissions:
-  contents: write
 
 jobs:
   backfill:
@@ -132,14 +130,6 @@ jobs:
         run: |
           python scripts/rag_store.py summarized_tweets.json
 
-      - name: Commit tweet data to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tweets_store.json
-          git diff --cached --quiet || git commit -m "补录推文数据（近 ${{ github.event.inputs.days_ago }} 天）$(date -u +%Y-%m-%d)"
-          git push origin main
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -147,5 +137,4 @@ jobs:
           path: |
             raw_tweets.json
             summarized_tweets.json
-            data/tweets_store.json
           retention-days: 7
