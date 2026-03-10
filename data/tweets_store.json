@@ -1,1 +1,134 @@
-[]
+[
+  {
+    "id": "1899001",
+    "document": "Karpathy 分享了关于 LLM 训练的最新见解：大模型的 scaling law 仍在继续发挥作用，但数据质量比数据数量更重要。他建议关注合成数据和 RLHF 的结合使用。\n\n原文：The scaling laws for LLMs continue to hold, but data quality matters more than quantity. Focus on synthetic data + RLHF.",
+    "metadata": {
+      "username": "karpathy",
+      "datetime": "2026-03-09T10:30:00Z",
+      "url": "https://x.com/karpathy/status/1899001",
+      "summary": "Karpathy 分享了关于 LLM 训练的最新见解：大模型的 scaling law 仍在继续发挥作用，但数据质量比数据数量更重要。",
+      "original_text": "The scaling laws for LLMs continue to hold, but data quality matters more than quantity. Focus on synthetic data + RLHF."
+    }
+  },
+  {
+    "id": "1899002",
+    "document": "Greg Isenberg 谈到 AI 创业趋势：现在最好的创业方向是用 AI 解决传统行业的具体痛点，而不是做通用 AI 工具。垂直领域 AI SaaS 仍有巨大机会。\n\n原文：The best AI startup opportunity right now: solving specific pain points in traditional industries with AI, not building general AI tools. Vertical AI SaaS is still wide open.",
+    "metadata": {
+      "username": "gregisenberg",
+      "datetime": "2026-03-09T14:20:00Z",
+      "url": "https://x.com/gregisenberg/status/1899002",
+      "summary": "Greg Isenberg 认为垂直领域 AI SaaS 仍有巨大创业机会，建议用 AI 解决传统行业具体痛点。",
+      "original_text": "The best AI startup opportunity right now: solving specific pain points in traditional industries with AI, not building general AI tools. Vertical AI SaaS is still wide open."
+    }
+  },
+  {
+    "id": "1899003",
+    "document": "McKay Wrigley 发布了新的 AI 编程工具更新：Cursor 的 Agent 模式让开发效率提升了 10 倍，他用 30 分钟就完成了以前需要一天的功能开发。\n\n原文：Just shipped a feature in 30 min that used to take a full day. Cursor Agent mode is a 10x productivity boost for real. The future of coding is here.",
+    "metadata": {
+      "username": "mckaywrigley",
+      "datetime": "2026-03-08T09:15:00Z",
+      "url": "https://x.com/mckaywrigley/status/1899003",
+      "summary": "McKay Wrigley 分享使用 Cursor Agent 模式的体验，称开发效率提升了 10 倍。",
+      "original_text": "Just shipped a feature in 30 min that used to take a full day. Cursor Agent mode is a 10x productivity boost for real. The future of coding is here."
+    }
+  },
+  {
+    "id": "1899004",
+    "document": "Karpathy 讨论了开源模型的发展：Llama 4 和 Mistral 的最新模型表明开源 LLM 正在快速缩小与闭源模型的差距。对开发者来说，开源模型已经足够用于大多数应用场景。\n\n原文：Llama 4 and Mistral's latest show that open-source LLMs are rapidly closing the gap with closed models. For most developer use cases, open source is already good enough.",
+    "metadata": {
+      "username": "karpathy",
+      "datetime": "2026-03-08T16:45:00Z",
+      "url": "https://x.com/karpathy/status/1899004",
+      "summary": "Karpathy 认为开源 LLM 正在快速缩小与闭源模型的差距，对大多数开发场景已足够好用。",
+      "original_text": "Llama 4 and Mistral's latest show that open-source LLMs are rapidly closing the gap with closed models. For most developer use cases, open source is already good enough."
+    }
+  },
+  {
+    "id": "1899005",
+    "document": "Peter Yang 分享了 AI 产品设计心得：好的 AI 产品不是把所有功能都加上 AI，而是找到用户最痛的一个点，用 AI 做到 10 倍好。Less is more。\n\n原文：Good AI product design isn't about adding AI to everything. It's about finding the ONE pain point and making it 10x better with AI. Less is more.",
+    "metadata": {
+      "username": "petergyang",
+      "datetime": "2026-03-08T11:30:00Z",
+      "url": "https://x.com/petergyang/status/1899005",
+      "summary": "Peter Yang 分享 AI 产品设计心得：找到用户最痛的一个点，用 AI 做到 10 倍好。",
+      "original_text": "Good AI product design isn't about adding AI to everything. It's about finding the ONE pain point and making it 10x better with AI. Less is more."
+    }
+  },
+  {
+    "id": "1899006",
+    "document": "Greg Isenberg 分析了 AI Agent 生态的现状：2026 年是 AI Agent 的爆发年，MCP 协议正在成为 Agent 互联的标准。建议开发者开始构建 MCP 服务器。\n\n原文：2026 is THE year of AI Agents. MCP protocol is becoming the standard for agent interop. If you're a developer, start building MCP servers now. The opportunity is massive.",
+    "metadata": {
+      "username": "gregisenberg",
+      "datetime": "2026-03-07T13:00:00Z",
+      "url": "https://x.com/gregisenberg/status/1899006",
+      "summary": "Greg Isenberg 认为 2026 年是 AI Agent 爆发年，MCP 协议正在成为 Agent 互联标准。",
+      "original_text": "2026 is THE year of AI Agents. MCP protocol is becoming the standard for agent interop. If you're a developer, start building MCP servers now. The opportunity is massive."
+    }
+  },
+  {
+    "id": "1899007",
+    "document": "Lenny Rachitsky 讨论了 AI 对产品经理的影响：PM 的核心技能正在从写 PRD 转变为设计 AI 交互体验。未来最有价值的 PM 是懂 AI 能力边界的人。\n\n原文：The PM role is shifting from writing PRDs to designing AI interaction experiences. The most valuable PMs in the future will deeply understand AI capabilities and limitations.",
+    "metadata": {
+      "username": "lennysan",
+      "datetime": "2026-03-07T08:45:00Z",
+      "url": "https://x.com/lennysan/status/1899007",
+      "summary": "Lenny 认为 PM 核心技能正在转变为设计 AI 交互体验，懂 AI 能力边界的 PM 最有价值。",
+      "original_text": "The PM role is shifting from writing PRDs to designing AI interaction experiences. The most valuable PMs in the future will deeply understand AI capabilities and limitations."
+    }
+  },
+  {
+    "id": "1899008",
+    "document": "McKay Wrigley 推荐了他的 AI 开发工作流：Claude Code + Cursor + V0 组合是目前最强的全栈 AI 开发工具链。他用这套工具一周内从零构建了一个完整的 SaaS。\n\n原文：My AI dev stack: Claude Code + Cursor + V0. This combo is the most powerful full-stack AI dev toolkit right now. Built a complete SaaS from scratch in one week.",
+    "metadata": {
+      "username": "mckaywrigley",
+      "datetime": "2026-03-07T15:20:00Z",
+      "url": "https://x.com/mckaywrigley/status/1899008",
+      "summary": "McKay Wrigley 推荐 Claude Code + Cursor + V0 作为最强全栈 AI 开发工具链。",
+      "original_text": "My AI dev stack: Claude Code + Cursor + V0. This combo is the most powerful full-stack AI dev toolkit right now. Built a complete SaaS from scratch in one week."
+    }
+  },
+  {
+    "id": "1899009",
+    "document": "Zara Zhang 分享了中国 AI 创业生态观察：国内 AI 应用落地速度远超硅谷，尤其在电商、教育和金融领域。DeepSeek 的成功证明了中国团队在模型研发上的实力。\n\n原文：China's AI application deployment is outpacing Silicon Valley, especially in e-commerce, education and finance. DeepSeek's success proves Chinese teams' strength in model development.",
+    "metadata": {
+      "username": "zarazhangrui",
+      "datetime": "2026-03-09T07:00:00Z",
+      "url": "https://x.com/zarazhangrui/status/1899009",
+      "summary": "Zara Zhang 观察到中国 AI 应用落地速度远超硅谷，DeepSeek 证明了中国团队的模型研发实力。",
+      "original_text": "China's AI application deployment is outpacing Silicon Valley, especially in e-commerce, education and finance. DeepSeek's success proves Chinese teams' strength in model development."
+    }
+  },
+  {
+    "id": "1899010",
+    "document": "Riley Brown 演示了用 AI Agent 自动化社交媒体运营：他构建了一个 Agent 系统，可以自动监控热点、生成内容、排期发布。每天节省 3 小时运营时间。\n\n原文：Built an AI Agent system that automates social media ops: monitors trends, generates content, schedules posts. Saving 3 hours/day. Here's how I built it with Claude + MCP...",
+    "metadata": {
+      "username": "rileybrown",
+      "datetime": "2026-03-08T20:00:00Z",
+      "url": "https://x.com/rileybrown/status/1899010",
+      "summary": "Riley Brown 构建了 AI Agent 自动化社交媒体运营系统，每天节省 3 小时。",
+      "original_text": "Built an AI Agent system that automates social media ops: monitors trends, generates content, schedules posts. Saving 3 hours/day. Here's how I built it with Claude + MCP..."
+    }
+  },
+  {
+    "id": "1899011",
+    "document": "Karpathy 发布了关于 AI 安全的思考：随着模型能力的提升，alignment 研究变得更加重要。他呼吁更多研究者关注 interpretability 和 RLHF 改进。\n\n原文：As models get more capable, alignment research becomes even more critical. We need more researchers working on interpretability and RLHF improvements. This is the most important work in AI right now.",
+    "metadata": {
+      "username": "karpathy",
+      "datetime": "2026-03-07T12:00:00Z",
+      "url": "https://x.com/karpathy/status/1899011",
+      "summary": "Karpathy 呼吁更多研究者关注 AI 安全、interpretability 和 RLHF 改进。",
+      "original_text": "As models get more capable, alignment research becomes even more critical. We need more researchers working on interpretability and RLHF improvements. This is the most important work in AI right now."
+    }
+  },
+  {
+    "id": "1899012",
+    "document": "Peter Yang 总结了 AI 产品的定价策略：基于使用量的定价模式正在成为 AI SaaS 的主流。用户愿意为 AI 带来的价值付费，而不是为功能数量付费。\n\n原文：Usage-based pricing is becoming the default for AI SaaS. Users pay for value delivered, not feature count. The best AI products charge per outcome, not per seat.",
+    "metadata": {
+      "username": "petergyang",
+      "datetime": "2026-03-06T10:00:00Z",
+      "url": "https://x.com/petergyang/status/1899012",
+      "summary": "Peter Yang 认为基于使用量的定价正成为 AI SaaS 主流，用户为价值而非功能付费。",
+      "original_text": "Usage-based pricing is becoming the default for AI SaaS. Users pay for value delivered, not feature count. The best AI products charge per outcome, not per seat."
+    }
+  }
+]
