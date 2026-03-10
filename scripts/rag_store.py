@@ -299,8 +299,8 @@ def _search_vector(query, n_results=5, username=None):
     except Exception:
         return []
 
-    # 相关性阈值：cosine similarity < 0.55 的结果视为不相关，降级走关键词匹配
-    SCORE_THRESHOLD = 0.55
+    # 相关性阈值：指定用户时降低阈值（已按人过滤，语义门槛可放宽）
+    SCORE_THRESHOLD = 0.3 if username else 0.55
     tweets = []
     for match in results.matches:
         if match.score < SCORE_THRESHOLD:
@@ -355,21 +355,37 @@ def _search_keyword(query, n_results=5, username=None):
         all_tweets = [t for t in all_tweets if t.get("metadata", {}).get("username") == username]
 
     keywords = _extract_keywords(query)
-    if not keywords:
-        return []
 
     scored = []
-    for t in all_tweets:
-        doc = (t.get("document", "") + " " + t.get("metadata", {}).get("summary", "")).lower()
-        score = 0
-        for kw in keywords:
-            if kw in doc:
-                # 长关键词权重更高
-                score += 2 if len(kw) >= 4 else 1
-        if score > 0:
-            scored.append((score, t))
+    if keywords:
+        for t in all_tweets:
+            doc = (t.get("document", "") + " " + t.get("metadata", {}).get("summary", "")).lower()
+            score = 0
+            for kw in keywords:
+                if kw in doc:
+                    # 长关键词权重更高
+                    score += 2 if len(kw) >= 4 else 1
+            if score > 0:
+                scored.append((score, t))
 
-    scored.sort(key=lambda x: x[0], reverse=True)
+        scored.sort(key=lambda x: x[0], reverse=True)
+
+    # 指定用户但关键词匹配无结果时，兜底返回该用户最近 N 条推文
+    if username and not scored:
+        def _parse_dt(t):
+            dt_str = t.get("metadata", {}).get("datetime", "")
+            for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d"]:
+                try:
+                    return datetime.strptime(dt_str[:26], fmt)
+                except ValueError:
+                    continue
+            return datetime.min
+
+        recent = sorted(all_tweets, key=_parse_dt, reverse=True)[:n_results]
+        return [
+            {"id": t.get("id", ""), "document": t.get("document", ""), "metadata": t.get("metadata", {}), "distance": 0.5}
+            for t in recent
+        ]
 
     results = []
     for score, t in scored[:n_results]:
