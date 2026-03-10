@@ -6,6 +6,9 @@ on:
     - cron: '20 1 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   digest:
     runs-on: ubuntu-latest
@@ -108,27 +111,37 @@ jobs:
           curl -s "https://api.apify.com/v2/datasets/$DATASET_ID/items?token=${{ secrets.APIFY_TOKEN }}" \
             -o raw_tweets.json
 
-          echo "Downloaded $(cat raw_tweets.json | jq length) tweets"
+          TWEET_COUNT=$(cat raw_tweets.json | jq length)
+          echo "Downloaded $TWEET_COUNT tweets"
+
+          if [ "$TWEET_COUNT" = "0" ] || [ "$TWEET_COUNT" = "null" ]; then
+            echo "Warning: No tweets downloaded from Apify"
+            cat raw_tweets.json | head -100
+          fi
 
       - name: Generate AI summaries
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: |
           python scripts/summarize.py raw_tweets.json summarized_tweets.json
+          echo "Summarized tweets count: $(cat summarized_tweets.json | jq length)"
 
       - name: Ingest tweets into RAG database
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: |
           python scripts/rag_store.py summarized_tweets.json
+          echo "tweets_store.json size: $(cat data/tweets_store.json | jq length) records"
 
       - name: Commit tweet data to repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/tweets_store.json
-          git diff --cached --quiet || git commit -m "更新推文数据 $(date -u +%Y-%m-%d)"
-          git push origin main || echo "Push failed, will retry on next run"
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "更新推文数据 $(date -u +%Y-%m-%d)"
+          git pull --rebase origin main
+          git push origin main
 
       - name: Send email
         continue-on-error: true
