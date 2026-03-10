@@ -168,6 +168,47 @@ async def rag_stats(days: Optional[int] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/health")
+async def health_check():
+    """健康检查 - 报告各组件配置状态"""
+    api_key_set = bool(os.environ.get("ZHIPU_API_KEY", ""))
+
+    chroma_ok = False
+    chroma_count = 0
+    try:
+        from scripts.rag_store import HAS_CHROMADB, get_collection
+        if HAS_CHROMADB:
+            collection = get_collection()
+            chroma_count = collection.count()
+            chroma_ok = True
+    except Exception:
+        pass
+
+    json_count = 0
+    try:
+        from scripts.rag_store import _load_json_store
+        json_count = len(_load_json_store())
+    except Exception:
+        pass
+
+    all_ok = api_key_set and json_count > 0
+
+    return {
+        "status": "ok" if all_ok else "degraded",
+        "components": {
+            "zhipu_api_key": "configured" if api_key_set else "MISSING - 请在 Render/环境变量中设置 ZHIPU_API_KEY",
+            "chromadb": f"ok ({chroma_count} tweets)" if chroma_ok else "unavailable (will use keyword fallback)",
+            "json_store": f"ok ({json_count} tweets)" if json_count > 0 else "empty - 请先运行 Daily Digest 工作流",
+        },
+        "rag_features": {
+            "qa_smart": "available" if api_key_set and json_count > 0 else "unavailable",
+            "qa_keyword": "available" if json_count > 0 else "unavailable",
+            "trends": "available" if api_key_set and json_count > 0 else "unavailable",
+            "stats": "available" if json_count > 0 else "unavailable",
+        },
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
