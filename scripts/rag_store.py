@@ -7,6 +7,7 @@ RAG 向量存储模块
 import os
 import json
 import hashlib
+import re
 from datetime import datetime, timedelta
 from openai import OpenAI
 
@@ -339,6 +340,35 @@ def _search_vector(query, n_results=5, username=None, db_path=None):
     return tweets
 
 
+def _extract_keywords(query):
+    """提取查询关键词，兼容中英文与无空格中文提问。"""
+    query_lower = (query or "").lower().strip()
+    if not query_lower:
+        return []
+
+    # 先提取中英文词块
+    tokens = re.findall(r"[\u4e00-\u9fff]{2,}|[a-z0-9_#@.-]{2,}", query_lower)
+
+    # 对纯中文长句补充 2-4 字子串，提升无空格中文检索召回
+    cjk_only = re.sub(r"[^\u4e00-\u9fff]", "", query_lower)
+    if len(cjk_only) >= 4:
+        for n in (2, 3, 4):
+            if len(cjk_only) >= n:
+                tokens.extend(cjk_only[i:i+n] for i in range(0, len(cjk_only) - n + 1))
+
+    # 去重并过滤停用词
+    stop_words = {"最近", "什么", "哪些", "怎么", "一下", "关于", "以及", "这个", "那个", "分析", "趋势"}
+    seen = set()
+    keywords = []
+    for t in tokens:
+        if t in stop_words or len(t) < 2:
+            continue
+        if t not in seen:
+            seen.add(t)
+            keywords.append(t)
+    return keywords
+
+
 def _search_keyword(query, n_results=5, username=None):
     """关键词匹配降级方案（不需要 API Key 或 ChromaDB）"""
     all_tweets = _load_json_store()
@@ -348,13 +378,18 @@ def _search_keyword(query, n_results=5, username=None):
     if username:
         all_tweets = [t for t in all_tweets if t.get("metadata", {}).get("username") == username]
 
-    query_lower = query.lower()
-    keywords = [w.strip() for w in query_lower.split() if len(w.strip()) > 1]
+    keywords = _extract_keywords(query)
+    if not keywords:
+        return []
 
     scored = []
     for t in all_tweets:
         doc = (t.get("document", "") + " " + t.get("metadata", {}).get("summary", "")).lower()
-        score = sum(1 for kw in keywords if kw in doc)
+        score = 0
+        for kw in keywords:
+            if kw in doc:
+                # 长关键词权重更高
+                score += 2 if len(kw) >= 4 else 1
         if score > 0:
             scored.append((score, t))
 

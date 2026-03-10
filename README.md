@@ -95,6 +95,21 @@ RAG 功能需要以下条件：
 2. **推文数据** - 需要至少运行一次 Daily Digest 工作流，数据保存在 `data/tweets_store.json`
 3. **ChromaDB**（可选）- 用于向量检索，不可用时自动降级为关键词匹配
 
+
+### 常见问题：ChromaDB 需要单独注册吗？
+
+不需要。这个项目使用的是 **本地持久化 ChromaDB**（Python 包 `chromadb`），程序会自动在 `data/chroma_db` 创建和读写向量库，无需登录或在 Chroma 官网做任何初始化。
+
+如果你看到“RAG 无数据 / 趋势分析为 0”，通常不是 Chroma 注册问题，而是以下任一项未满足：
+
+1. `data/tweets_store.json` 为空（需要先跑 Daily Digest 导入推文）
+2. 部署环境未设置 `ZHIPU_API_KEY`（影响智能问答与趋势分析）
+
+建议先访问 `/api/health` 检查：
+- `json_store` 是否为 `ok (...)`
+- `zhipu_api_key` 是否为 `configured`
+- `chromadb` 即使显示 unavailable 也可走关键词降级，不是阻塞项
+
 ### 检查部署状态
 
 访问 `/api/health` 可查看各组件配置状态：
@@ -118,6 +133,20 @@ cp .env.example .env
 # 3. 启动服务
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
+### Render 常见误区：需要在 Render 上 manual commit 吗？
+
+不需要。Render 上部署的是 GitHub 仓库代码快照，你**不需要也不应该**在 Render 实例里手动 commit。
+
+正确流程是：
+1. Daily Digest GitHub Actions 抓取并更新 `data/tweets_store.json`
+2. Workflow 自动 commit 并 push 到 `main`
+3. Render 监听到 `main` 新提交后自动重新部署
+
+如果你在 Render 里看到 RAG 仍是 0，通常是：
+- GitHub Actions 没有成功跑完；或
+- Workflow 没有成功 push 到 `main`；或
+- Render 没触发自动部署（可在 Render 面板点一次 Manual Deploy，但这不是代码 commit）。
 
 ## 注意事项
 
