@@ -142,8 +142,12 @@ def ensure_vector_store_ready():
             batch_meta = metas[i:i + batch_size]
             batch_embeddings = get_embeddings(batch_docs, client=embedding_client)
             vectors = [
-                {"id": vid, "values": emb, "metadata": meta}
-                for vid, emb, meta in zip(batch_ids, batch_embeddings, batch_meta)
+                {
+                    "id": vid,
+                    "values": emb,
+                    "metadata": {**meta, "document": batch_docs[j]},
+                }
+                for j, (vid, emb, meta) in enumerate(zip(batch_ids, batch_embeddings, batch_meta))
             ]
             index.upsert(vectors=vectors)
             restored += len(batch_ids)
@@ -199,6 +203,7 @@ def ingest_tweets(tweets_file, db_path=None):
                 "url": url,
                 "summary": summary,
                 "original_text": text[:500],
+                "document": doc,  # 冗余存储，Pinecone 查询时可还原
             },
         })
 
@@ -293,7 +298,7 @@ def _search_vector(query, n_results=5, username=None):
         meta = match.metadata or {}
         tweets.append({
             "id": match.id,
-            "document": meta.get("summary", "") or meta.get("original_text", ""),
+            "document": meta.get("document") or meta.get("summary", "") or meta.get("original_text", ""),
             "metadata": meta,
             "distance": 1.0 - match.score,
         })
