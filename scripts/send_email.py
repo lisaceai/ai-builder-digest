@@ -213,8 +213,8 @@ def main():
     recipient_email = os.environ.get('EMAIL_TO', '')
 
     if not all([sender_email, sender_password, recipient_email]):
-        print("Error: Missing email configuration")
-        sys.exit(1)
+        print("Warning: Missing email configuration, skipping email send.")
+        return
 
     # 生成邮件内容
     html_content = generate_email_content(tweets)
