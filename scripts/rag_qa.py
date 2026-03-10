@@ -4,18 +4,41 @@ RAG 问答模块
 """
 
 import os
+import json
 from openai import OpenAI
 from scripts.rag_store import search_tweets, get_all_tweets_stats
+
+
+def _load_known_builders():
+    """从 config/users.json 加载已知 builder 列表"""
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "users.json")
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return [u.lower() for u in json.load(f).get("ai_builders", [])]
+    except Exception:
+        return []
+
+
+def _detect_username(question, known_builders):
+    """从问题文本中识别是否提到了某个已知 builder（用于自动过滤）"""
+    q_lower = question.lower()
+    for builder in known_builders:
+        # 匹配 @username 或直接出现 username
+        if f"@{builder}" in q_lower or builder in q_lower:
+            return builder
+    return None
 
 
 QA_SYSTEM_PROMPT = """你是一个 AI 技术动态助手，基于 AI Builder 们的推文数据回答用户问题。
 
 规则：
-1. 只基于检索到的推文内容回答，不要编造信息
-2. 如果检索结果中没有相关信息，诚实告知用户
-3. 回答时注明信息来源（哪位 builder 说的）
-4. 用简洁自然的中文回答
-5. 如果涉及多位 builder 的观点，分别说明"""
+1. 严格只基于【检索到的推文内容】回答，禁止使用任何外部知识或自行编造信息
+2. 只引用【实际出现在上下文中】的推文来源（用户名、链接），禁止虚构或推测来源
+3. 如果上下文中没有某位 builder 的推文，绝对不要提及或引用该 builder 的观点
+4. 如果检索结果中没有相关信息，直接告知用户"在现有数据中未找到相关内容"
+5. 回答时引用具体来源：@用户名
+6. 用简洁自然的中文回答
+7. 如果涉及多位 builder 的观点，分别说明各自的原话或摘要"""
 
 QA_USER_PROMPT = """基于以下检索到的推文信息，回答用户的问题。
 
@@ -54,8 +77,13 @@ def ask(question, n_results=5, username=None, db_path=None):
     RAG 问答
     question: 用户问题
     n_results: 检索结果数量
-    username: 可选，只检索特定 builder 的推文
+    username: 可选，只检索特定 builder 的推文（未指定时自动从问题中识别）
     """
+    # 若前端未传 username，尝试从问题文本中识别
+    if not username:
+        known_builders = _load_known_builders()
+        username = _detect_username(question, known_builders)
+
     # 1. 检索相关推文（自动降级为关键词匹配）
     results = search_tweets(
         query=question,
