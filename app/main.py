@@ -119,6 +119,16 @@ async def save_users(data: UsersData):
 
 # ==================== RAG 接口 ====================
 
+@app.post("/api/rag/sync")
+async def rag_sync():
+    """手动触发从 Pinecone 同步到本地缓存"""
+    try:
+        from scripts.rag_store import _sync_from_pinecone
+        count = _sync_from_pinecone()
+        return {"status": "ok", "synced": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/rag/ask")
 async def rag_ask(req: QuestionRequest):
     """RAG 问答接口"""

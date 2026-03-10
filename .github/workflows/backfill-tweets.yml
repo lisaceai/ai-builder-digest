@@ -130,6 +130,12 @@ jobs:
         run: |
           python scripts/rag_store.py summarized_tweets.json
 
+      - name: Notify Render app to sync
+        continue-on-error: true
+        run: |
+          curl -s -X POST "${{ secrets.RENDER_APP_URL }}/api/rag/sync" \
+            -H "Content-Type: application/json" | jq .
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
