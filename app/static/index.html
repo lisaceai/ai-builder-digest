@@ -422,7 +422,14 @@
 
         function simpleMarkdown(text) {
             return text
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .split('\n')
+                .map(line => {
+                    if (/^### (.+)/.test(line)) return '<h4>' + line.slice(4) + '</h4>';
+                    if (/^## (.+)/.test(line))  return '<h3>' + line.slice(3) + '</h3>';
+                    if (/^# (.+)/.test(line))   return '<h2>' + line.slice(2) + '</h2>';
+                    return line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                })
+                .join('\n')
                 .replace(/\n/g, '<br>');
         }
 

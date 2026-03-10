@@ -293,8 +293,12 @@ def _search_vector(query, n_results=5, username=None):
     except Exception:
         return []
 
+    # 相关性阈值：cosine similarity < 0.55 的结果视为不相关，降级走关键词匹配
+    SCORE_THRESHOLD = 0.55
     tweets = []
     for match in results.matches:
+        if match.score < SCORE_THRESHOLD:
+            continue
         meta = match.metadata or {}
         tweets.append({
             "id": match.id,
