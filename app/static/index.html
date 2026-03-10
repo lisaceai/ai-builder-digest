@@ -237,11 +237,10 @@
                         </div>
                     </div>
                     <div class="time-range-bar" id="timeRangeBar">
+                        <button class="time-range-btn" onclick="setTimeRange(1, this)">今天</button>
                         <button class="time-range-btn" onclick="setTimeRange(3, this)">近3天</button>
                         <button class="time-range-btn active" onclick="setTimeRange(7, this)">一周</button>
-                        <button class="time-range-btn" onclick="setTimeRange(15, this)">半个月</button>
                         <button class="time-range-btn" onclick="setTimeRange(30, this)">一个月</button>
-                        <button class="time-range-btn" onclick="setTimeRange(180, this)">半年</button>
                         <button class="time-range-btn" onclick="setTimeRange(null, this)">全部</button>
                     </div>
                     <div class="builder-chips" id="builderChips"></div>

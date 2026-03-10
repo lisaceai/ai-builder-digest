@@ -1,16 +1,20 @@
-name: Daily AI Builder Digest
+name: Backfill Tweets (Manual)
 
 on:
-  schedule:
-    # 北京时间每天9:20 = UTC 1:20
-    - cron: '20 1 * * *'
   workflow_dispatch:
+    inputs:
+      days_ago:
+        description: '回溯天数（默认 7）'
+        required: false
+        default: '7'
+      result_count:
+        description: '每位 builder 最多抓取推文数（默认 50）'
+        required: false
+        default: '50'
 
-permissions:
-  contents: write
 
 jobs:
-  digest:
+  backfill:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,31 +27,30 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Trigger Apify Actor
         id: apify
         run: |
           USERS=$(jq -c '.ai_builders' config/users.json)
+          DAYS_AGO=${{ github.event.inputs.days_ago }}
+          RESULT_COUNT=${{ github.event.inputs.result_count }}
 
-          # 计算前一天日期 (YYYY-MM-DD格式，Linux兼容)
-          YESTERDAY=$(date -u -d "1 day ago" +%Y-%m-%d)
-          TODAY=$(date -u +%Y-%m-%d)
+          SINCE_DATE=$(date -u -d "${DAYS_AGO} days ago" +%Y-%m-%d)
 
-          # 构建 URL 列表 (正确的格式)
           URLS_JSON=$(echo "$USERS" | jq -r '.[]' | while read user; do echo "{\"url\": \"https://x.com/$user\"}"; done | jq -s '.')
 
           PAYLOAD=$(jq -n \
             --argjson urls "$URLS_JSON" \
-            --arg since "$YESTERDAY" \
+            --arg since "$SINCE_DATE" \
+            --arg count "$RESULT_COUNT" \
             '{
               "start_urls": $urls,
               "since_date": $since,
-              "result_count": "20"
+              "result_count": $count
             }')
 
-          echo "Since: $YESTERDAY, Until: $TODAY"
+          echo "Since: $SINCE_DATE, result_count: $RESULT_COUNT"
           echo "Payload: $PAYLOAD"
 
           APIFY_ACTOR_ID=gentle_cloud~twitter-tweets-scraper
@@ -71,16 +74,16 @@ jobs:
       - name: Wait for Apify to complete
         run: |
           RUN_ID=${{ steps.apify.outputs.run_id }}
-          echo "Waiting for Apify run $RUN_ID to complete..."
+          echo "Waiting for Apify run $RUN_ID..."
 
-          MAX_WAIT=600
+          MAX_WAIT=900
           WAITED=0
 
           while [ $WAITED -lt $MAX_WAIT ]; do
             STATUS=$(curl -s "https://api.apify.com/v2/acts/gentle_cloud~twitter-tweets-scraper/runs/$RUN_ID?token=${{ secrets.APIFY_TOKEN }}" \
               | jq -r '.data.status')
 
-            echo "Current status: $STATUS"
+            echo "Status: $STATUS"
 
             if [ "$STATUS" = "SUCCEEDED" ]; then
               echo "Apify run succeeded!"
@@ -90,8 +93,8 @@ jobs:
               exit 1
             fi
 
-            sleep 10
-            WAITED=$((WAITED + 10))
+            sleep 15
+            WAITED=$((WAITED + 15))
           done
 
           if [ $WAITED -ge $MAX_WAIT ]; then
@@ -127,21 +130,10 @@ jobs:
         run: |
           python scripts/rag_store.py summarized_tweets.json
 
-      - name: Send email
-        continue-on-error: true
-        env:
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          EMAIL_SMTP_HOST: ${{ secrets.EMAIL_SMTP_HOST }}
-          EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
-        run: |
-          python scripts/send_email.py summarized_tweets.json
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: digest-archive
+          name: backfill-archive
           path: |
             raw_tweets.json
             summarized_tweets.json
