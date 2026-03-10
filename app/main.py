@@ -23,16 +23,16 @@ app = FastAPI(title="AI Builder 管理器")
 
 @app.on_event("startup")
 async def startup_event():
-    """启动时从 JSON 回填 ChromaDB，确保向量搜索可用"""
+    """启动时从 JSON 回填 Pinecone，确保向量搜索可用"""
     from scripts.rag_store import ensure_vector_store_ready
     try:
         ready = ensure_vector_store_ready()
         if ready:
-            print("ChromaDB hydrated from JSON store on startup.")
+            print("Pinecone hydrated from JSON store on startup.")
         else:
-            print("ChromaDB hydration skipped (no data or missing API key).")
+            print("Pinecone hydration skipped (no data or missing API key).")
     except Exception as e:
-        print(f"Warning: ChromaDB startup hydration failed: {e}")
+        print(f"Warning: Pinecone startup hydration failed: {e}")
 
 
 # 配置路径
@@ -171,16 +171,18 @@ async def rag_stats(days: Optional[int] = None):
 @app.get("/api/health")
 async def health_check():
     """健康检查 - 报告各组件配置状态"""
-    api_key_set = bool(os.environ.get("ZHIPU_API_KEY", ""))
+    zhipu_key_set = bool(os.environ.get("ZHIPU_API_KEY", ""))
+    pinecone_key_set = bool(os.environ.get("PINECONE_API_KEY", ""))
 
-    chroma_ok = False
-    chroma_count = 0
+    pinecone_ok = False
+    pinecone_count = 0
     try:
-        from scripts.rag_store import HAS_CHROMADB, get_collection
-        if HAS_CHROMADB:
-            collection = get_collection()
-            chroma_count = collection.count()
-            chroma_ok = True
+        from scripts.rag_store import HAS_PINECONE, get_pinecone_index
+        if HAS_PINECONE and pinecone_key_set:
+            index = get_pinecone_index()
+            stats = index.describe_index_stats()
+            pinecone_count = stats.total_vector_count
+            pinecone_ok = True
     except Exception:
         pass
 
@@ -191,19 +193,20 @@ async def health_check():
     except Exception:
         pass
 
-    all_ok = api_key_set and json_count > 0
+    all_ok = zhipu_key_set and pinecone_key_set and json_count > 0
 
     return {
         "status": "ok" if all_ok else "degraded",
         "components": {
-            "zhipu_api_key": "configured" if api_key_set else "MISSING - 请在 Render/环境变量中设置 ZHIPU_API_KEY",
-            "chromadb": f"ok ({chroma_count} tweets)" if chroma_ok else "unavailable (will use keyword fallback)",
-            "json_store": f"ok ({json_count} tweets)" if json_count > 0 else "empty - 请先运行 Daily Digest 工作流（无需在 Render manual commit）",
+            "zhipu_api_key": "configured" if zhipu_key_set else "MISSING - 请设置 ZHIPU_API_KEY",
+            "pinecone_api_key": "configured" if pinecone_key_set else "MISSING - 请设置 PINECONE_API_KEY",
+            "pinecone": f"ok ({pinecone_count} tweets)" if pinecone_ok else "unavailable (will use keyword fallback)",
+            "json_store": f"ok ({json_count} tweets)" if json_count > 0 else "empty - 请先运行 Daily Digest 工作流",
         },
         "rag_features": {
-            "qa_smart": "available" if api_key_set and json_count > 0 else "unavailable",
+            "qa_smart": "available" if zhipu_key_set and pinecone_key_set and json_count > 0 else "unavailable",
             "qa_keyword": "available" if json_count > 0 else "unavailable",
-            "trends": "available" if api_key_set and json_count > 0 else "unavailable",
+            "trends": "available" if zhipu_key_set and json_count > 0 else "unavailable",
             "stats": "available" if json_count > 0 else "unavailable",
         },
     }
