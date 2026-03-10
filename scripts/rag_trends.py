@@ -5,7 +5,7 @@
 
 import os
 from openai import OpenAI
-from scripts.rag_store import get_all_vector_tweets, search_tweets
+from scripts.rag_store import get_all_tweets_metadata, search_tweets
 
 
 TRENDS_SYSTEM_PROMPT = """你是一个 AI 技术趋势分析师，必须严格基于给定推文证据输出结论。
@@ -80,10 +80,10 @@ def analyze_trends(db_path=None, days=None):
     days: 可选，只分析最近 N 天的推文
     返回趋势分析文本
     """
-    all_tweets = get_all_vector_tweets(db_path=db_path, days=days)
+    all_tweets = get_all_tweets_metadata(db_path=db_path, days=days)
 
     if not all_tweets:
-        return {"analysis": "向量数据库中暂无推文数据，请先导入推文。", "tweet_count": 0}
+        return {"analysis": "暂无推文数据，请先运行抓取流程导入推文。", "tweet_count": 0}
 
     # 构建推文摘要文本（限制总长度）
     tweets_text_parts = []
