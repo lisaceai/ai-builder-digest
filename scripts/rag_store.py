@@ -33,7 +33,8 @@ def get_embedding_client():
         raise ValueError("ZHIPU_API_KEY 环境变量未设置")
     return OpenAI(
         api_key=api_key,
-        base_url="https://open.bigmodel.cn/api/paas/v4"
+        base_url="https://open.bigmodel.cn/api/paas/v4",
+        timeout=30.0,
     )
 
 
