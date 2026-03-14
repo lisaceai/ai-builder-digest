@@ -97,41 +97,6 @@ def _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT):
     return results
 
 
-def _sample_by_builder_fallback(tweets, max_total=120):
-    """
-    向量搜索不可用时的降级方案：按 builder 均匀采样，
-    每个 builder 内取最新推文。
-    """
-    from collections import defaultdict
-    from datetime import datetime
-
-    grouped = defaultdict(list)
-    for t in tweets:
-        username = t.get("metadata", {}).get("username", "unknown")
-        grouped[username].append(t)
-
-    def _tweet_dt(t):
-        dt_str = t.get("metadata", {}).get("datetime", "")
-        for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%SZ",
-                    "%Y-%m-%d", "%a %b %d %H:%M:%S +0000 %Y"]:
-            try:
-                return datetime.strptime(dt_str[:29], fmt)
-            except ValueError:
-                continue
-        return datetime.min
-
-    builders = list(grouped.keys())
-    per_builder = max(1, max_total // len(builders)) if builders else max_total
-    sampled = []
-    for username in builders:
-        sampled.extend(sorted(grouped[username], key=_tweet_dt, reverse=True)[:per_builder])
-
-    if len(sampled) < max_total:
-        extras = [t for username in builders for t in grouped[username][per_builder:]]
-        sampled.extend(extras[:max_total - len(sampled)])
-
-    return sampled[:max_total]
-
 
 def analyze_trends(db_path=None, days=None):
     """
@@ -157,9 +122,9 @@ def analyze_trends(db_path=None, days=None):
     # 优先用向量搜索按 builder 召回最有代表性的推文
     sampled = _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT)
 
-    # 向量搜索无结果时降级为均匀采样
+    # 向量搜索无结果时降级为直接取前120条
     if not sampled:
-        sampled = _sample_by_builder_fallback(all_tweets, max_total=120)
+        sampled = all_tweets[:120]
 
     # 构建推文摘要文本（限制总长度）
     tweets_text_parts = []
