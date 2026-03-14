@@ -78,14 +78,12 @@ def _call_llm(system_prompt, user_prompt):
 # 趋势分析的通用语义查询词，用于向量搜索召回最有代表性的推文
 TRENDS_SEARCH_QUERY = "AI technology trends products insights innovations"
 
-PER_BUILDER_LIMIT = 15  # 向量搜索每个 builder 最多取几条
-
-
-def _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT):
+def _fetch_tweets_by_vector(builders, per_builder, days=None):
     """
-    用向量搜索按 builder 分别召回最有代表性的推文。
-    向量搜索不可用时返回空列表，外层降级为全量采样。
+    用向量搜索按 builder 分别召回推文，结果按时间范围后置过滤。
+    向量搜索不可用时返回空列表，外层降级为直接取本地数据。
     """
+    from scripts.rag_store import _filter_tweets_by_days
     results = []
     for username in builders:
         hits = search_tweets(
@@ -93,9 +91,11 @@ def _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT):
             n_results=per_builder,
             username=username,
         )
+        # Pinecone 不支持日期范围查询，在结果上做后置时间过滤
+        if days:
+            hits = _filter_tweets_by_days(hits, days=days)
         results.extend(hits)
     return results
-
 
 
 def analyze_trends(db_path=None, days=None):
@@ -116,13 +116,16 @@ def analyze_trends(db_path=None, days=None):
     if not all_tweets:
         return {"analysis": "暂无推文数据，请先运行抓取流程导入推文。", "tweet_count": 0}
 
-    # 获取时间范围内所有 builder
+    # 时间范围内的 builder 列表
     builders = list({t.get("metadata", {}).get("username", "") for t in all_tweets if t.get("metadata", {}).get("username")})
 
-    # 优先用向量搜索按 builder 召回最有代表性的推文
-    sampled = _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT)
+    # per_builder 根据时间范围内实际数据动态计算：总条数 / builder 数，上限20条
+    per_builder = max(5, min(20, len(all_tweets) // len(builders))) if builders else 10
 
-    # 向量搜索无结果时降级为取最新120条
+    # 优先用向量搜索按 builder 召回推文，传入 days 做时间后置过滤
+    sampled = _fetch_tweets_by_vector(builders, per_builder=per_builder, days=days)
+
+    # 向量搜索无结果时降级为取本地最新120条
     if not sampled:
         sampled = sorted(all_tweets, key=lambda t: t.get("metadata", {}).get("datetime", ""), reverse=True)[:120]
 
