@@ -8,5 +8,9 @@ services:
     envVars:
       - key: ZHIPU_API_KEY
         sync: false
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        sync: false
       - key: PYTHON_VERSION
         value: "3.11"
