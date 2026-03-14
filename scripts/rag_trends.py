@@ -80,6 +80,13 @@ def analyze_trends(db_path=None, days=None):
     days: 可选，只分析最近 N 天的推文
     返回趋势分析文本
     """
+    # 分析前尝试从 Pinecone 同步最新数据
+    try:
+        from scripts.rag_store import ensure_vector_store_ready
+        ensure_vector_store_ready()
+    except Exception:
+        pass
+
     all_tweets = get_all_tweets_metadata(db_path=db_path, days=days)
 
     if not all_tweets:
