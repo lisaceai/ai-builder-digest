@@ -156,6 +156,22 @@ async def rag_builder_analysis(req: BuilderAnalysisRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/rag/sync")
+async def rag_sync():
+    """手动从 Pinecone 同步最新推文到本地缓存"""
+    try:
+        from scripts.rag_store import HAS_PINECONE, _sync_from_pinecone, _load_json_store
+        if not HAS_PINECONE or not os.environ.get("PINECONE_API_KEY", ""):
+            raise HTTPException(status_code=503, detail="Pinecone 未配置，无法同步。请检查 PINECONE_API_KEY 环境变量。")
+        count = _sync_from_pinecone()
+        local_total = len(_load_json_store())
+        return {"synced": count, "local_total": local_total, "message": f"同步完成，本地共 {local_total} 条推文"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/rag/stats")
 async def rag_stats(days: Optional[int] = None):
     """RAG 数据库统计"""

@@ -244,8 +244,10 @@
                         <button class="time-range-btn" onclick="setTimeRange(null, this)">全部</button>
                     </div>
                     <div class="builder-chips" id="builderChips"></div>
-                    <div style="margin-bottom: 20px;">
+                    <div id="syncStatus" style="display:none; margin-bottom:12px; padding:10px 14px; background:#fef3c7; border:1px solid #fbbf24; border-radius:8px; font-size:13px; color:#92400e;"></div>
+                    <div style="margin-bottom: 20px; display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="btn" onclick="loadTrends()">生成趋势分析</button>
+                        <button class="btn" id="syncBtn" onclick="syncFromPinecone()" style="background:#f0fdf4; color:#15803d; border:1px solid #86efac;">从 Pinecone 同步最新数据</button>
                     </div>
                     <div class="trends-content" id="trendsContent">
                         <div class="empty-state">点击上方按钮生成趋势分析报告</div>
@@ -471,6 +473,39 @@
                 console.error('加载统计失败:', e);
                 document.getElementById('totalTweets').textContent = '-';
                 document.getElementById('totalBuilders').textContent = '-';
+            }
+        }
+
+        async function syncFromPinecone() {
+            const btn = document.getElementById('syncBtn');
+            const statusEl = document.getElementById('syncStatus');
+            btn.disabled = true;
+            btn.textContent = '同步中...';
+            statusEl.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/rag/sync', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.background = '#f0fdf4';
+                    statusEl.style.borderColor = '#86efac';
+                    statusEl.style.color = '#15803d';
+                    statusEl.textContent = '✓ ' + data.message;
+                    loadStats(); // 刷新统计
+                } else {
+                    statusEl.style.display = 'block';
+                    statusEl.style.background = '#fef3c7';
+                    statusEl.style.borderColor = '#fbbf24';
+                    statusEl.style.color = '#92400e';
+                    statusEl.textContent = '⚠ 同步失败：' + (data.detail || '未知错误');
+                }
+            } catch (e) {
+                statusEl.style.display = 'block';
+                statusEl.textContent = '⚠ 网络错误：' + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '从 Pinecone 同步最新数据';
             }
         }
 
