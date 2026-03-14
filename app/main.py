@@ -126,12 +126,17 @@ async def rag_ask(req: QuestionRequest):
     from functools import partial
     try:
         from scripts.rag_qa import ask
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            partial(ask, question=req.question, n_results=req.n_results, username=req.username),
+        loop = asyncio.get_running_loop()
+        result = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                partial(ask, question=req.question, n_results=req.n_results, username=req.username),
+            ),
+            timeout=28.0,
         )
         return result
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="请求超时，请稍后重试（Zhipu API 响应较慢）")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -143,9 +148,14 @@ async def rag_trends(days: Optional[int] = None):
     from functools import partial
     try:
         from scripts.rag_trends import analyze_trends
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, partial(analyze_trends, days=days))
+        loop = asyncio.get_running_loop()
+        result = await asyncio.wait_for(
+            loop.run_in_executor(None, partial(analyze_trends, days=days)),
+            timeout=28.0,
+        )
         return result
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="请求超时，请稍后重试（Zhipu API 响应较慢）")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
