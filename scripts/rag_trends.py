@@ -4,6 +4,7 @@
 """
 
 import os
+from datetime import timedelta
 from openai import OpenAI
 from scripts.rag_store import get_all_tweets_metadata, search_tweets, _load_json_store
 
@@ -80,20 +81,22 @@ TRENDS_SEARCH_QUERY = "AI technology trends products insights innovations"
 
 def _fetch_tweets_by_vector(builders, per_builder, days=None):
     """
-    用向量搜索按 builder 分别召回推文，结果按时间范围后置过滤。
+    用向量搜索按 builder 分别召回推文，通过 unix_timestamp 在 Pinecone 侧过滤时间范围。
     向量搜索不可用时返回空列表，外层降级为直接取本地数据。
     """
-    from scripts.rag_store import _filter_tweets_by_days
+    from datetime import datetime, timezone
+    since_ts = None
+    if days:
+        since_ts = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
+
     results = []
     for username in builders:
         hits = search_tweets(
             query=TRENDS_SEARCH_QUERY,
             n_results=per_builder,
             username=username,
+            since_ts=since_ts,
         )
-        # Pinecone 不支持日期范围查询，在结果上做后置时间过滤
-        if days:
-            hits = _filter_tweets_by_days(hits, days=days)
         results.extend(hits)
     return results
 
