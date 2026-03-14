@@ -126,7 +126,8 @@ def ask(question, n_results=5, username=None, db_path=None):
 
     client = OpenAI(
         api_key=api_key,
-        base_url="https://open.bigmodel.cn/api/paas/v4"
+        base_url="https://open.bigmodel.cn/api/paas/v4",
+        timeout=30.0,
     )
 
     prompt = QA_USER_PROMPT.format(context=context, question=question)

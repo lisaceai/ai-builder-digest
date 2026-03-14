@@ -122,12 +122,14 @@ async def save_users(data: UsersData):
 @app.post("/api/rag/ask")
 async def rag_ask(req: QuestionRequest):
     """RAG 问答接口"""
+    import asyncio
+    from functools import partial
     try:
         from scripts.rag_qa import ask
-        result = ask(
-            question=req.question,
-            n_results=req.n_results,
-            username=req.username,
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            partial(ask, question=req.question, n_results=req.n_results, username=req.username),
         )
         return result
     except Exception as e:
@@ -137,9 +139,12 @@ async def rag_ask(req: QuestionRequest):
 @app.get("/api/rag/trends")
 async def rag_trends(days: Optional[int] = None):
     """趋势分析接口"""
+    import asyncio
+    from functools import partial
     try:
         from scripts.rag_trends import analyze_trends
-        result = analyze_trends(days=days)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, partial(analyze_trends, days=days))
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
