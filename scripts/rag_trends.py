@@ -55,7 +55,7 @@ def _get_llm_client():
     return OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        timeout=30.0,
+        timeout=25.0,
     )
 
 

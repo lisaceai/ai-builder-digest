@@ -34,7 +34,7 @@ def get_embedding_client():
     return OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        timeout=30.0,
+        timeout=8.0,  # embedding 快速超时，失败后降级关键词搜索
     )
 
 
