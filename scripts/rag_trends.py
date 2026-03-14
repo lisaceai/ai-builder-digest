@@ -75,44 +75,59 @@ def _call_llm(system_prompt, user_prompt):
     return response.choices[0].message.content.strip()
 
 
-def _sample_tweets_by_builder(tweets, max_total=120):
+# 趋势分析的通用语义查询词，用于向量搜索召回最有代表性的推文
+TRENDS_SEARCH_QUERY = "AI technology trends products insights innovations"
+
+PER_BUILDER_LIMIT = 15  # 向量搜索每个 builder 最多取几条
+
+
+def _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT):
     """
-    按 builder 均匀采样，每个 builder 分配相同配额，
-    每个 builder 内按时间倒序取最新推文，保证代表性。
+    用向量搜索按 builder 分别召回最有代表性的推文。
+    向量搜索不可用时返回空列表，外层降级为全量采样。
+    """
+    results = []
+    for username in builders:
+        hits = search_tweets(
+            query=TRENDS_SEARCH_QUERY,
+            n_results=per_builder,
+            username=username,
+        )
+        results.extend(hits)
+    return results
+
+
+def _sample_by_builder_fallback(tweets, max_total=120):
+    """
+    向量搜索不可用时的降级方案：按 builder 均匀采样，
+    每个 builder 内取最新推文。
     """
     from collections import defaultdict
+    from datetime import datetime
+
     grouped = defaultdict(list)
     for t in tweets:
         username = t.get("metadata", {}).get("username", "unknown")
         grouped[username].append(t)
 
-    # 每个 builder 内按时间倒序排列，优先取最新
     def _tweet_dt(t):
         dt_str = t.get("metadata", {}).get("datetime", "")
-        from datetime import datetime
-        for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d",
-                    "%a %b %d %H:%M:%S +0000 %Y"]:
+        for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%SZ",
+                    "%Y-%m-%d", "%a %b %d %H:%M:%S +0000 %Y"]:
             try:
                 return datetime.strptime(dt_str[:29], fmt)
             except ValueError:
                 continue
         return datetime.min
 
-    for username in grouped:
-        grouped[username].sort(key=_tweet_dt, reverse=True)
-
     builders = list(grouped.keys())
     per_builder = max(1, max_total // len(builders)) if builders else max_total
-
     sampled = []
     for username in builders:
-        sampled.extend(grouped[username][:per_builder])
+        sampled.extend(sorted(grouped[username], key=_tweet_dt, reverse=True)[:per_builder])
 
-    # 若还有剩余配额，从各 builder 补齐（轮询）
     if len(sampled) < max_total:
-        extras = []
-        for username in builders:
-            extras.extend(grouped[username][per_builder:])
+        extras = [t for username in builders for t in grouped[username][per_builder:]]
         sampled.extend(extras[:max_total - len(sampled)])
 
     return sampled[:max_total]
@@ -136,9 +151,15 @@ def analyze_trends(db_path=None, days=None):
     if not all_tweets:
         return {"analysis": "暂无推文数据，请先运行抓取流程导入推文。", "tweet_count": 0}
 
-    # 按 builder 均匀采样，最多取 120 条，避免推文多时某个 builder 垄断上下文
-    MAX_TWEETS = 120
-    sampled = _sample_tweets_by_builder(all_tweets, max_total=MAX_TWEETS)
+    # 获取时间范围内所有 builder
+    builders = list({t.get("metadata", {}).get("username", "") for t in all_tweets if t.get("metadata", {}).get("username")})
+
+    # 优先用向量搜索按 builder 召回最有代表性的推文
+    sampled = _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT)
+
+    # 向量搜索无结果时降级为均匀采样
+    if not sampled:
+        sampled = _sample_by_builder_fallback(all_tweets, max_total=120)
 
     # 构建推文摘要文本（限制总长度）
     tweets_text_parts = []
