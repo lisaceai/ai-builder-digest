@@ -122,9 +122,9 @@ def analyze_trends(db_path=None, days=None):
     # 优先用向量搜索按 builder 召回最有代表性的推文
     sampled = _fetch_tweets_by_vector(builders, per_builder=PER_BUILDER_LIMIT)
 
-    # 向量搜索无结果时降级为直接取前120条
+    # 向量搜索无结果时降级为取最新120条
     if not sampled:
-        sampled = all_tweets[:120]
+        sampled = sorted(all_tweets, key=lambda t: t.get("metadata", {}).get("datetime", ""), reverse=True)[:120]
 
     # 构建推文摘要文本（限制总长度）
     tweets_text_parts = []
