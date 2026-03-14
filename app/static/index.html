@@ -373,8 +373,18 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ question, username, n_results: 5 })
                 });
-                const data = await res.json();
                 typingEl.remove();
+
+                let data;
+                const ct = res.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    data = await res.json();
+                } else {
+                    const text = await res.text();
+                    appendMessage(`服务器错误 HTTP ${res.status}：${text.slice(0, 200)}`, 'assistant');
+                    document.getElementById('sendBtn').disabled = false;
+                    return;
+                }
 
                 if (res.ok) {
                     appendAnswer(data.answer, data.sources || []);
@@ -383,7 +393,7 @@
                 }
             } catch (e) {
                 typingEl.remove();
-                appendMessage('网络错误：' + e.message, 'assistant');
+                appendMessage('请求失败（' + e.message + '）—— 请检查网络，或稍后重试', 'assistant');
             }
             document.getElementById('sendBtn').disabled = false;
         }
