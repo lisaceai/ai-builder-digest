@@ -4,6 +4,7 @@
 """
 
 import os
+from datetime import timedelta
 from openai import OpenAI
 from scripts.rag_store import get_all_tweets_metadata, search_tweets, _load_json_store
 
@@ -55,7 +56,7 @@ def _get_llm_client():
     return OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        timeout=30.0,
+        timeout=25.0,
     )
 
 
@@ -73,6 +74,31 @@ def _call_llm(system_prompt, user_prompt):
         extra_body={"thinking": {"type": "disabled"}},
     )
     return response.choices[0].message.content.strip()
+
+
+# 趋势分析的通用语义查询词，用于向量搜索召回最有代表性的推文
+TRENDS_SEARCH_QUERY = "AI technology trends products insights innovations"
+
+def _fetch_tweets_by_vector(builders, per_builder, days=None):
+    """
+    用向量搜索按 builder 分别召回推文，通过 unix_timestamp 在 Pinecone 侧过滤时间范围。
+    向量搜索不可用时返回空列表，外层降级为直接取本地数据。
+    """
+    from datetime import datetime, timezone
+    since_ts = None
+    if days:
+        since_ts = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
+
+    results = []
+    for username in builders:
+        hits = search_tweets(
+            query=TRENDS_SEARCH_QUERY,
+            n_results=per_builder,
+            username=username,
+            since_ts=since_ts,
+        )
+        results.extend(hits)
+    return results
 
 
 def analyze_trends(db_path=None, days=None):
@@ -93,9 +119,22 @@ def analyze_trends(db_path=None, days=None):
     if not all_tweets:
         return {"analysis": "暂无推文数据，请先运行抓取流程导入推文。", "tweet_count": 0}
 
+    # 时间范围内的 builder 列表
+    builders = list({t.get("metadata", {}).get("username", "") for t in all_tweets if t.get("metadata", {}).get("username")})
+
+    # per_builder 根据时间范围内实际数据动态计算：总条数 / builder 数，上限20条
+    per_builder = max(5, min(20, len(all_tweets) // len(builders))) if builders else 10
+
+    # 优先用向量搜索按 builder 召回推文，传入 days 做时间后置过滤
+    sampled = _fetch_tweets_by_vector(builders, per_builder=per_builder, days=days)
+
+    # 向量搜索无结果时降级为取本地最新120条
+    if not sampled:
+        sampled = sorted(all_tweets, key=lambda t: t.get("metadata", {}).get("datetime", ""), reverse=True)[:120]
+
     # 构建推文摘要文本（限制总长度）
     tweets_text_parts = []
-    for t in all_tweets[:120]:  # 最多分析 120 条
+    for t in sampled:
         meta = t.get("metadata", {})
         username = meta.get("username", "未知")
         dt = meta.get("datetime", "")

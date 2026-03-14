@@ -34,7 +34,7 @@ def get_embedding_client():
     return OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        timeout=30.0,
+        timeout=8.0,  # embedding 快速超时，失败后降级关键词搜索
     )
 
 
@@ -202,16 +202,27 @@ def ingest_tweets(tweets_file, db_path=None):
         dt = t.get("datetime", "")
         url = t.get("url", "")
 
+        # 转成 Unix 时间戳，供 Pinecone 数值范围过滤使用
+        unix_ts = 0
+        for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%SZ",
+                    "%Y-%m-%d", "%a %b %d %H:%M:%S +0000 %Y"]:
+            try:
+                unix_ts = int(datetime.strptime(dt[:29], fmt).timestamp())
+                break
+            except (ValueError, OSError):
+                continue
+
         all_tweet_records.append({
             "id": tid,
             "document": doc,
             "metadata": {
                 "username": username,
                 "datetime": dt,
+                "unix_timestamp": unix_ts,
                 "url": url,
                 "summary": summary,
                 "original_text": text[:500],
-                "document": doc,  # 冗余存储，Pinecone 查询时可还原
+                "document": doc,
             },
         })
 
@@ -263,12 +274,13 @@ def ingest_tweets(tweets_file, db_path=None):
     return ingested
 
 
-def search_tweets(query, n_results=5, username=None, db_path=None):
+def search_tweets(query, n_results=5, username=None, db_path=None, since_ts=None):
     """
     检索与查询相关的推文
     优先使用向量检索（Pinecone + embedding），不可用时自动降级为关键词匹配。
+    since_ts: 可选，Unix 时间戳，只返回该时间之后的推文
     """
-    vector_results = _search_vector(query, n_results, username)
+    vector_results = _search_vector(query, n_results, username, since_ts=since_ts)
     if vector_results:
         return vector_results
 
@@ -276,7 +288,7 @@ def search_tweets(query, n_results=5, username=None, db_path=None):
     return _search_keyword(query, n_results, username)
 
 
-def _search_vector(query, n_results=5, username=None):
+def _search_vector(query, n_results=5, username=None, since_ts=None):
     """向量检索（需要 Pinecone + ZHIPU_API_KEY）"""
     if not HAS_PINECONE or not os.environ.get("PINECONE_API_KEY", "") or not os.environ.get("ZHIPU_API_KEY", ""):
         return []
@@ -288,7 +300,18 @@ def _search_vector(query, n_results=5, username=None):
     except Exception:
         return []
 
-    where_filter = {"username": {"$eq": username}} if username else None
+    conditions = []
+    if username:
+        conditions.append({"username": {"$eq": username}})
+    if since_ts:
+        conditions.append({"unix_timestamp": {"$gte": since_ts}})
+
+    if len(conditions) == 0:
+        where_filter = None
+    elif len(conditions) == 1:
+        where_filter = conditions[0]
+    else:
+        where_filter = {"$and": conditions}
 
     try:
         results = index.query(
