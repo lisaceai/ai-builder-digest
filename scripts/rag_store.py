@@ -198,7 +198,7 @@ def ingest_tweets(tweets_file, db_path=None):
         text = t.get("text", "")
         doc = f"{summary}\n\n原文：{text}" if summary else text
 
-        username = t.get("username", "unknown")
+        username = t.get("username", "unknown").lower().strip()
         dt = t.get("datetime", "")
         url = t.get("url", "")
 
@@ -307,6 +307,9 @@ def _search_vector(query, n_results=5, username=None):
         if match.score < SCORE_THRESHOLD:
             continue
         meta = match.metadata or {}
+        # 后置校验：防止 Pinecone filter 失效时混入其他 builder 的推文
+        if username and meta.get("username", "").lower() != username.lower():
+            continue
         tweets.append({
             "id": match.id,
             "document": meta.get("document") or meta.get("summary", "") or meta.get("original_text", ""),
@@ -353,7 +356,7 @@ def _search_keyword(query, n_results=5, username=None):
         return []
 
     if username:
-        all_tweets = [t for t in all_tweets if t.get("metadata", {}).get("username") == username]
+        all_tweets = [t for t in all_tweets if t.get("metadata", {}).get("username", "").lower() == username.lower()]
 
     keywords = _extract_keywords(query)
 
