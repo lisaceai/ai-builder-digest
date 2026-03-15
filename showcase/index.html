@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builder Digest - 项目展示</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --cyan: #06b6d4;
+            --cyan-dark: #0891b2;
+            --sky: #0ea5e9;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #22d3ee;
+            --border: #334155;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* ========== Navigation ========== */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            padding: 0 24px;
+        }
+        .nav-inner {
+            max-width: 1100px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px;
+        }
+        .nav-logo {
+            font-size: 18px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sky), var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .nav-links { display: flex; gap: 28px; list-style: none; }
+        .nav-links a {
+            color: var(--text-muted); text-decoration: none; font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--accent); }
+
+        /* ========== Hero ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+            padding: 120px 24px 80px;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 0%, rgba(6,182,212,0.15) 0%, transparent 60%),
+                var(--bg);
+        }
+        .hero-badge {
+            display: inline-block;
+            padding: 6px 16px; margin-bottom: 24px;
+            background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3);
+            border-radius: 20px; font-size: 13px; color: var(--accent);
+        }
+        .hero h1 {
+            font-size: clamp(36px, 6vw, 64px); font-weight: 800;
+            line-height: 1.15; margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 18px; color: var(--text-muted);
+            max-width: 600px; margin-bottom: 36px;
+        }
+        .hero-stack {
+            display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+        }
+        .stack-tag {
+            padding: 6px 16px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 6px; font-size: 13px; color: var(--text-muted);
+        }
+        .scroll-hint {
+            margin-top: 60px;
+            animation: bounce 2s infinite;
+            color: var(--text-muted); font-size: 13px;
+        }
+        .scroll-hint span { display: block; font-size: 24px; }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        /* ========== Sections ========== */
+        .section {
+            max-width: 1100px; margin: 0 auto;
+            padding: 100px 24px;
+        }
+        .section-label {
+            font-size: 13px; text-transform: uppercase; letter-spacing: 2px;
+            color: var(--accent); margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: clamp(28px, 4vw, 40px); font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .section-desc {
+            font-size: 16px; color: var(--text-muted);
+            max-width: 640px; margin-bottom: 48px;
+        }
+
+        /* ========== Feature Block ========== */
+        .feature-block {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 48px; align-items: center;
+            margin-bottom: 80px;
+        }
+        .feature-block.reverse { direction: rtl; }
+        .feature-block.reverse > * { direction: ltr; }
+
+        .feature-info { }
+        .feature-num {
+            font-size: 13px; font-weight: 700; color: var(--accent);
+            margin-bottom: 8px;
+        }
+        .feature-info h3 {
+            font-size: 24px; font-weight: 700; margin-bottom: 12px;
+        }
+        .feature-info p {
+            font-size: 15px; color: var(--text-muted); line-height: 1.8;
+        }
+        .feature-tags {
+            display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;
+        }
+        .feature-tag {
+            padding: 4px 12px;
+            background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.2);
+            border-radius: 4px; font-size: 12px; color: var(--accent);
+        }
+
+        .feature-media {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .feature-media img,
+        .feature-media video {
+            width: 100%; display: block;
+        }
+        .media-placeholder {
+            aspect-ratio: 16/10;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: var(--text-muted); font-size: 14px;
+            gap: 8px;
+        }
+        .media-placeholder .icon { font-size: 32px; opacity: 0.4; }
+
+        /* ========== Architecture (workflow) ========== */
+        .architecture-media {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 32px;
+        }
+        .architecture-media img {
+            width: 100%; display: block;
+        }
+
+        /* ========== Dual media (for RAG section) ========== */
+        .dual-media {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 24px; margin-top: 32px;
+        }
+        .dual-media .feature-media { margin: 0; }
+        .media-caption {
+            padding: 12px 16px;
+            font-size: 13px; color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        /* ========== Footer ========== */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+
+        /* ========== Responsive ========== */
+        @media (max-width: 768px) {
+            .feature-block,
+            .feature-block.reverse {
+                grid-template-columns: 1fr;
+                direction: ltr;
+                gap: 24px;
+            }
+            .dual-media {
+                grid-template-columns: 1fr;
+            }
+            .nav-links { display: none; }
+        }
+
+        /* ========== Animations ========== */
+        .fade-in {
+            opacity: 0; transform: translateY(24px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .fade-in.visible {
+            opacity: 1; transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+    <div class="nav-inner">
+        <div class="nav-logo">AI Builder Digest</div>
+        <ul class="nav-links">
+            <li><a href="#workflow">工作流</a></li>
+            <li><a href="#builder">Builder 管理</a></li>
+            <li><a href="#email">每日邮件</a></li>
+            <li><a href="#rag">RAG 问答</a></li>
+            <li><a href="#trends">趋势分析</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-badge">Side Project</div>
+    <h1>AI Builder Digest</h1>
+    <p>自动追踪 AI Builder 的推文动态，每日生成摘要推送，并通过 RAG 实现智能问答与趋势洞察</p>
+    <div class="hero-stack">
+        <span class="stack-tag">FastAPI</span>
+        <span class="stack-tag">Pinecone</span>
+        <span class="stack-tag">Zhipu GLM</span>
+        <span class="stack-tag">GitHub Actions</span>
+        <span class="stack-tag">Apify</span>
+    </div>
+    <div class="scroll-hint">
+        <span>↓</span>
+        向下滚动查看
+    </div>
+</section>
+
+<!-- 1. 工作流 -->
+<section class="section" id="workflow">
+    <div class="fade-in">
+        <div class="section-label">01 / 系统架构</div>
+        <div class="section-title">端到端自动化工作流</div>
+        <div class="section-desc">
+            从推文抓取到邮件推送，全链路通过 GitHub Actions 实现定时自动化。
+            每日定时触发 Apify 爬取指定 Builder 的推文，经 AI 摘要后存入 Pinecone 向量数据库，
+            同时发送邮件摘要，支持 Web 端实时问答和趋势分析。
+        </div>
+        <div class="architecture-media">
+            <!-- 替换为你的流程图 -->
+            <img src="assets/workflow.png" alt="系统工作流程图"
+                 onerror="this.parentElement.innerHTML='<div class=\'media-placeholder\'><span class=\'icon\'>📊</span>请将流程图放入 showcase/assets/workflow.png</div>'">
+        </div>
+    </div>
+</section>
+
+<!-- 2. Builder 管理 -->
+<section class="section" id="builder">
+    <div class="feature-block fade-in">
+        <div class="feature-info">
+            <div class="feature-num">02</div>
+            <h3>Builder 清单管理</h3>
+            <p>
+                通过 Web 界面轻松管理你关注的 AI Builder 列表。
+                添加或删除 Builder 后，系统自动同步到 GitHub 仓库的配置文件，
+                下次定时任务将自动抓取新增 Builder 的推文数据。
+            </p>
+            <div class="feature-tags">
+                <span class="feature-tag">实时增删</span>
+                <span class="feature-tag">自动同步 GitHub</span>
+                <span class="feature-tag">配置即生效</span>
+            </div>
+        </div>
+        <div class="feature-media">
+            <!-- 替换为你的 GIF -->
+            <img src="assets/builder-manage.gif" alt="Builder 管理演示"
+                 onerror="this.parentElement.innerHTML='<div class=\'media-placeholder\'><span class=\'icon\'>🎬</span>请将 GIF 放入 showcase/assets/builder-manage.gif</div>'">
+        </div>
+    </div>
+</section>
+
+<!-- 3. 每日邮件 -->
+<section class="section" id="email">
+    <div class="feature-block reverse fade-in">
+        <div class="feature-info">
+            <div class="feature-num">03</div>
+            <h3>每日定时邮件摘要</h3>
+            <p>
+                GitHub Actions 每日定时执行，自动将 AI 生成的推文摘要
+                以精美的 HTML 邮件形式推送到你的邮箱。
+                无需主动查看，打开邮件即可掌握 AI 圈最新动态。
+            </p>
+            <div class="feature-tags">
+                <span class="feature-tag">GitHub Actions 定时</span>
+                <span class="feature-tag">HTML 邮件模板</span>
+                <span class="feature-tag">AI 摘要</span>
+            </div>
+        </div>
+        <div class="feature-media">
+            <!-- 替换为你的邮件截图 -->
+            <img src="assets/email.png" alt="每日邮件截图"
+                 onerror="this.parentElement.innerHTML='<div class=\'media-placeholder\'><span class=\'icon\'>📧</span>请将邮件截图放入 showcase/assets/email.png</div>'">
+        </div>
+    </div>
+</section>
+
+<!-- 4. RAG 问答 -->
+<section class="section" id="rag">
+    <div class="fade-in">
+        <div class="section-label">04 / 核心功能</div>
+        <div class="section-title">RAG 智能问答 + 来源追溯</div>
+        <div class="section-desc">
+            基于 Pinecone 向量数据库的检索增强生成（RAG）。
+            输入任意问题，系统从历史推文中检索最相关的内容，结合 AI 生成精准回答，
+            并附带原文来源链接，每一条回答都可追溯验证。
+        </div>
+        <div class="dual-media">
+            <div class="feature-media">
+                <img src="assets/rag-qa-1.gif" alt="RAG 问答演示 1"
+                     onerror="this.parentElement.innerHTML='<div class=\'media-placeholder\'><span class=\'icon\'>💬</span>请将 GIF 放入 showcase/assets/rag-qa-1.gif</div>'">
+                <div class="media-caption">提问并获得 AI 回答</div>
+            </div>
+            <div class="feature-media">
+                <img src="assets/rag-qa-2.gif" alt="RAG 问答演示 2"
+                     onerror="this.parentElement.innerHTML='<div class=\'media-placeholder\'><span class=\'icon\'>🔗</span>请将 GIF 放入 showcase/assets/rag-qa-2.gif</div>'">
+                <div class="media-caption">来源追溯与原文链接</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 5. 趋势分析 -->
+<section class="section" id="trends">
+    <div class="feature-block fade-in">
+        <div class="feature-info">
+            <div class="feature-num">05</div>
+            <h3>AI 趋势分析</h3>
+            <p>
+                基于时间维度对推文数据进行聚合分析，自动识别热点话题与技术趋势。
+                支持按时间范围筛选（24小时/3天/7天/30天），
+                还可针对单个 Builder 深度分析其关注方向和讨论模式。
+            </p>
+            <div class="feature-tags">
+                <span class="feature-tag">时间范围筛选</span>
+                <span class="feature-tag">热点话题识别</span>
+                <span class="feature-tag">Builder 个体分析</span>
+            </div>
+        </div>
+        <div class="feature-media">
+            <!-- 替换为你的 GIF -->
+            <img src="assets/trends.gif" alt="趋势分析演示"
+                 onerror="this.parentElement.innerHTML='<div class=\'media-placeholder\'><span class=\'icon\'>📈</span>请将 GIF 放入 showcase/assets/trends.gif</div>'">
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <p>Built with FastAPI + Pinecone + Zhipu GLM &nbsp;·&nbsp; <a href="https://github.com" target="_blank">GitHub Repo</a></p>
+</footer>
+
+<!-- Scroll animation -->
+<script>
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
