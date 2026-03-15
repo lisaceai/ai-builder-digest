@@ -8,8 +8,12 @@ import os
 import json
 import hashlib
 import re
+import time
+import logging
 from datetime import datetime, timedelta
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 try:
     from pinecone import Pinecone, ServerlessSpec
@@ -34,12 +38,12 @@ def get_embedding_client():
     return OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        timeout=8.0,  # embedding 快速超时，失败后降级关键词搜索
+        timeout=15.0,
     )
 
 
 def get_embeddings(texts, client=None):
-    """使用智谱 API 生成文本 embedding"""
+    """使用智谱 API 生成文本 embedding（带重试，最多 3 次）"""
     if client is None:
         client = get_embedding_client()
 
@@ -47,11 +51,23 @@ def get_embeddings(texts, client=None):
     for text in texts:
         # 截断过长文本
         truncated = text[:2000] if len(text) > 2000 else text
-        response = client.embeddings.create(
-            model="embedding-3",
-            input=truncated
-        )
-        embeddings.append(response.data[0].embedding)
+        last_err = None
+        for attempt in range(3):
+            try:
+                response = client.embeddings.create(
+                    model="embedding-3",
+                    input=truncated
+                )
+                embeddings.append(response.data[0].embedding)
+                break
+            except Exception as e:
+                last_err = e
+                if attempt < 2:
+                    wait = 2 ** attempt  # 1s, 2s
+                    logger.warning(f"Embedding call failed (attempt {attempt + 1}/3), retrying in {wait}s: {e}")
+                    time.sleep(wait)
+        else:
+            raise RuntimeError(f"Embedding API 调用失败（已重试 3 次）: {last_err}")
     return embeddings
 
 
