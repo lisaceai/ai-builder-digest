@@ -1,20 +1,22 @@
-"""Generate a horizontal workflow PNG diagram for the daily digest pipeline."""
+"""Generate a horizontal workflow PNG diagram for the daily digest pipeline.
+
+Layout: top row has 3 phases (触发 → 数据采集 → AI摘要) horizontally,
+then AI摘要 forks downward into RAG入库 and 通知&归档 side by side.
+"""
 
 from PIL import Image, ImageDraw, ImageFont
 
 # --- Config ---
-WIDTH, HEIGHT = 2200, 920
+WIDTH, HEIGHT = 1600, 1050
 BG = "#FFFFFF"
 CJK_FONT = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
-LATIN_FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-BOLD_FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
 
 font_title = ImageFont.truetype(CJK_FONT, 28)
 font_header = ImageFont.truetype(CJK_FONT, 20)
 font_body = ImageFont.truetype(CJK_FONT, 16)
 font_small = ImageFont.truetype(CJK_FONT, 14)
 
-# Colors for each phase
+# Phase definitions
 PHASES = [
     {
         "title": "触发",
@@ -74,67 +76,42 @@ img = Image.new("RGB", (WIDTH, HEIGHT), BG)
 draw = ImageDraw.Draw(img)
 
 # Title
-draw.text((WIDTH // 2, 30), "AI Builder Daily Digest - 主工作流", fill="#333333", font=font_title, anchor="mt")
+draw.text((WIDTH // 2, 28), "AI Builder Daily Digest - 主工作流", fill="#333333", font=font_title, anchor="mt")
 
 # Layout constants
-TOP_Y = 80
-PHASE_GAP = 16
-MARGIN_X = 30
-usable_w = WIDTH - 2 * MARGIN_X - (len(PHASES) - 1) * PHASE_GAP
-phase_w = usable_w // len(PHASES)
-BOX_H = 60
-BOX_GAP = 12
-HEADER_H = 44
+BOX_H = 58
+BOX_GAP = 10
+HEADER_H = 42
 PADDING = 14
 CORNER = 12
+PHASE_GAP = 20
+MARGIN_X = 40
+TOP_Y = 75
 
 
-def hex_to_rgb(h):
-    h = h.lstrip("#")
-    return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
+def draw_rounded_rect(d, xy, fill, outline=None, radius=10, width=2):
+    d.rounded_rectangle(xy, radius=radius, fill=fill, outline=outline, width=width)
 
 
-def draw_rounded_rect(draw, xy, fill, outline=None, radius=10, width=2):
-    x0, y0, x1, y1 = xy
-    draw.rounded_rectangle(xy, radius=radius, fill=fill, outline=outline, width=width)
-
-
-def draw_arrow(draw, x1, y1, x2, y2, color="#888888", w=2):
-    draw.line([(x1, y1), (x2, y2)], fill=color, width=w)
-    # arrowhead
-    arrow_size = 8
-    draw.polygon(
-        [(x2, y2), (x2 - arrow_size, y2 - arrow_size // 2), (x2 - arrow_size, y2 + arrow_size // 2)],
-        fill=color,
-    )
-
-
-# Draw phases
-phase_boxes = []  # list of list of (cx, cy) for each step box center
-phase_rects = []  # (x0, y0, x1, y1) for each phase group
-
-for i, phase in enumerate(PHASES):
-    x0 = MARGIN_X + i * (phase_w + PHASE_GAP)
+def draw_phase(d, phase, x0, y0, pw):
+    """Draw a single phase block. Returns (phase_rect, list_of_box_info)."""
     n_steps = len(phase["steps"])
     content_h = HEADER_H + n_steps * (BOX_H + BOX_GAP) + PADDING
-    y0 = TOP_Y
-    x1 = x0 + phase_w
+    x1 = x0 + pw
     y1 = y0 + content_h
 
     # Phase background
-    draw_rounded_rect(draw, (x0, y0, x1, y1), fill=phase["bg"], outline=phase["color"], radius=CORNER, width=2)
+    draw_rounded_rect(d, (x0, y0, x1, y1), fill=phase["bg"], outline=phase["color"], radius=CORNER, width=2)
 
     # Phase header
-    hdr_y = y0 + 6
-    draw.text(
-        ((x0 + x1) // 2, hdr_y + HEADER_H // 2),
+    d.text(
+        ((x0 + x1) // 2, y0 + 6 + HEADER_H // 2),
         phase["title"],
         fill=phase["color"],
         font=font_header,
         anchor="mm",
     )
-    # Divider line
-    draw.line([(x0 + 10, y0 + HEADER_H), (x1 - 10, y0 + HEADER_H)], fill=phase["color"], width=1)
+    d.line([(x0 + 10, y0 + HEADER_H), (x1 - 10, y0 + HEADER_H)], fill=phase["color"], width=1)
 
     boxes = []
     for j, (label, sub) in enumerate(phase["steps"]):
@@ -143,110 +120,150 @@ for i, phase in enumerate(PHASES):
         bx1 = x1 - PADDING
         by1 = by0 + BOX_H
 
-        draw_rounded_rect(draw, (bx0, by0, bx1, by1), fill="#FFFFFF", outline="#CCCCCC", radius=8, width=1)
+        draw_rounded_rect(d, (bx0, by0, bx1, by1), fill="#FFFFFF", outline="#CCCCCC", radius=8, width=1)
 
         cx = (bx0 + bx1) // 2
-        draw.text((cx, by0 + 16), label, fill="#333333", font=font_body, anchor="mt")
-        draw.text((cx, by0 + 38), sub, fill="#888888", font=font_small, anchor="mt")
+        d.text((cx, by0 + 15), label, fill="#333333", font=font_body, anchor="mt")
+        d.text((cx, by0 + 36), sub, fill="#888888", font=font_small, anchor="mt")
 
-        boxes.append(((bx0, by0, bx1, by1), cx, (by0 + by1) // 2))
+        boxes.append({"rect": (bx0, by0, bx1, by1), "cx": cx, "cy": (by0 + by1) // 2})
 
-    phase_boxes.append(boxes)
-    phase_rects.append((x0, y0, x1, y1))
+    return (x0, y0, x1, y1), boxes
 
-# Draw arrows WITHIN each phase (vertical, between consecutive steps)
-for i, boxes in enumerate(phase_boxes):
-    color = PHASES[i]["color"]
+
+def draw_vertical_arrows(d, boxes, color):
+    """Draw arrows between consecutive steps within a phase."""
     for j in range(len(boxes) - 1):
-        _, cx1, _ = boxes[j]
-        (_, _, _, by1_prev), _, _ = boxes[j]
-        (_, by0_next, _, _), _, _ = boxes[j + 1]
-        # vertical arrow from bottom of box j to top of box j+1
-        draw.line([(cx1, by1_prev), (cx1, by0_next)], fill=color, width=2)
-        # arrowhead down
+        cx = boxes[j]["cx"]
+        by1 = boxes[j]["rect"][3]
+        by0_next = boxes[j + 1]["rect"][1]
+        d.line([(cx, by1), (cx, by0_next)], fill=color, width=2)
         a = 6
-        draw.polygon(
-            [(cx1, by0_next), (cx1 - a, by0_next - a), (cx1 + a, by0_next - a)],
-            fill=color,
-        )
+        d.polygon([(cx, by0_next), (cx - a, by0_next - a), (cx + a, by0_next - a)], fill=color)
 
-# Draw arrows BETWEEN phases (horizontal, from last step of phase i to first step of phase i+1)
-ARROW_Y_OFFSET = 0
-for i in range(len(PHASES) - 1):
-    # from last box of phase i
-    src_boxes = phase_boxes[i]
-    dst_boxes = phase_boxes[i + 1]
 
-    # Connect last step of current phase to first step of next phase
-    (_, _, src_bx1, _), _, src_cy = src_boxes[-1]
-    (dst_bx0, _, _, _), _, dst_cy = dst_boxes[0]
-
-    mid_y = (src_cy + dst_cy) // 2
-    mid_x = (src_bx1 + dst_bx0) // 2
-
-    color = "#666666"
-    lw = 2
-
-    if src_cy == dst_cy:
-        # straight horizontal
-        draw.line([(src_bx1, src_cy), (dst_bx0, dst_cy)], fill=color, width=lw)
-        a = 7
-        draw.polygon(
-            [(dst_bx0, dst_cy), (dst_bx0 - a, dst_cy - a), (dst_bx0 - a, dst_cy + a)],
-            fill=color,
-        )
+def draw_h_arrow(d, x1, y1, x2, y2, color="#666666", lw=2):
+    """Draw horizontal arrow with arrowhead pointing right."""
+    if y1 == y2:
+        d.line([(x1, y1), (x2, y2)], fill=color, width=lw)
     else:
-        # L-shaped connector
-        draw.line([(src_bx1, src_cy), (mid_x, src_cy)], fill=color, width=lw)
-        draw.line([(mid_x, src_cy), (mid_x, dst_cy)], fill=color, width=lw)
-        draw.line([(mid_x, dst_cy), (dst_bx0, dst_cy)], fill=color, width=lw)
-        a = 7
-        draw.polygon(
-            [(dst_bx0, dst_cy), (dst_bx0 - a, dst_cy - a), (dst_bx0 - a, dst_cy + a)],
-            fill=color,
-        )
+        mid_x = (x1 + x2) // 2
+        d.line([(x1, y1), (mid_x, y1)], fill=color, width=lw)
+        d.line([(mid_x, y1), (mid_x, y2)], fill=color, width=lw)
+        d.line([(mid_x, y2), (x2, y2)], fill=color, width=lw)
+    a = 7
+    d.polygon([(x2, y2), (x2 - a, y2 - a), (x2 - a, y2 + a)], fill=color)
 
-# Special: phase 3 (AI摘要) last step also connects to phase 5 (通知&归档) first step
-# This represents the fork: summarized_tweets.json -> both RAG and Notification
-src_boxes_3 = phase_boxes[2]  # AI摘要
-dst_boxes_5 = phase_boxes[4]  # 通知&归档
 
-(_, _, src_bx1_3, src_by1_3), src_cx_3, src_cy_3 = src_boxes_3[-1]  # last step of AI摘要
-(dst_bx0_5, dst_by0_5, _, _), _, dst_cy_5 = dst_boxes_5[0]  # first step of 通知
+def draw_v_arrow(d, x1, y1, x2, y2, color="#666666", lw=2):
+    """Draw vertical arrow with arrowhead pointing down."""
+    if x1 == x2:
+        d.line([(x1, y1), (x2, y2)], fill=color, width=lw)
+    else:
+        mid_y = (y1 + y2) // 2
+        d.line([(x1, y1), (x1, mid_y)], fill=color, width=lw)
+        d.line([(x1, mid_y), (x2, mid_y)], fill=color, width=lw)
+        d.line([(x2, mid_y), (x2, y2)], fill=color, width=lw)
+    a = 7
+    d.polygon([(x2, y2), (x2 - a, y2 - a), (x2 + a, y2 - a)], fill=color)
 
-# Draw a curved path going below the boxes
-fork_y = max(r[3] for r in phase_rects) + 30  # below all phase boxes
 
-draw.line([(src_cx_3, src_by1_3), (src_cx_3, fork_y)], fill="#E91E63", width=2)
-draw.line([(src_cx_3, fork_y), (dst_bx0_5 - 20, fork_y)], fill="#E91E63", width=2)
-draw.line([(dst_bx0_5 - 20, fork_y), (dst_bx0_5 - 20, dst_cy_5)], fill="#E91E63", width=2)
-draw.line([(dst_bx0_5 - 20, dst_cy_5), (dst_bx0_5, dst_cy_5)], fill="#E91E63", width=2)
+# ========== ROW 1: 触发 → 数据采集 → AI摘要 (horizontal) ==========
+top_phases = PHASES[:3]
+top_usable_w = WIDTH - 2 * MARGIN_X - (len(top_phases) - 1) * PHASE_GAP
+top_phase_w = top_usable_w // len(top_phases)
+
+top_rects = []
+top_boxes = []
+
+for i, phase in enumerate(top_phases):
+    x0 = MARGIN_X + i * (top_phase_w + PHASE_GAP)
+    rect, boxes = draw_phase(draw, phase, x0, TOP_Y, top_phase_w)
+    top_rects.append(rect)
+    top_boxes.append(boxes)
+    draw_vertical_arrows(draw, boxes, phase["color"])
+
+# Horizontal arrows between top phases
+for i in range(len(top_phases) - 1):
+    src = top_boxes[i][-1]  # last box of current phase
+    dst = top_boxes[i + 1][0]  # first box of next phase
+    draw_h_arrow(draw, src["rect"][2], src["cy"], dst["rect"][0], dst["cy"])
+
+# ========== ROW 2: RAG入库 and 通知&归档 (below AI摘要, side by side) ==========
+# Position them below AI摘要, centered under it but spanning wider
+row2_top = max(r[3] for r in top_rects) + 60  # gap below row 1
+
+# The two bottom phases span the right 2/3 of the canvas, centered under AI摘要
+bot_phases = PHASES[3:]
+# Place them under the AI摘要 column area, but wider - use the right portion
+ai_summary_rect = top_rects[2]
+ai_cx = (ai_summary_rect[0] + ai_summary_rect[2]) // 2
+
+bot_phase_w = top_phase_w  # same width as top phases
+bot_total_w = 2 * bot_phase_w + PHASE_GAP
+bot_start_x = ai_cx - bot_total_w // 2
+
+# Ensure it doesn't go off screen
+bot_start_x = max(MARGIN_X, min(bot_start_x, WIDTH - MARGIN_X - bot_total_w))
+
+bot_rects = []
+bot_boxes = []
+
+for i, phase in enumerate(bot_phases):
+    x0 = bot_start_x + i * (bot_phase_w + PHASE_GAP)
+    rect, boxes = draw_phase(draw, phase, x0, row2_top, bot_phase_w)
+    bot_rects.append(rect)
+    bot_boxes.append(boxes)
+    draw_vertical_arrows(draw, boxes, phase["color"])
+
+# ========== FORK ARROWS: AI摘要 last step → down to RAG入库 and 通知&归档 ==========
+ai_last = top_boxes[2][-1]  # last box of AI摘要
+fork_start_x = ai_last["cx"]
+fork_start_y = ai_last["rect"][3]  # bottom of last box
+
+# Fork point (midway between row1 bottom and row2 top)
+fork_y = (fork_start_y + row2_top) // 2
+
+# Destination: top of first box in each bottom phase
+rag_first = bot_boxes[0][0]
+notify_first = bot_boxes[1][0]
+
+rag_dst_x = rag_first["cx"]
+rag_dst_y = rag_first["rect"][1]
+
+notify_dst_x = notify_first["cx"]
+notify_dst_y = notify_first["rect"][1]
+
+# Draw the fork: vertical line down, then split left and right
+draw.line([(fork_start_x, fork_start_y), (fork_start_x, fork_y)], fill="#666666", width=2)
+
+# Left branch → RAG入库
+draw.line([(fork_start_x, fork_y), (rag_dst_x, fork_y)], fill="#4CAF50", width=2)
+draw.line([(rag_dst_x, fork_y), (rag_dst_x, rag_dst_y)], fill="#4CAF50", width=2)
 a = 7
-draw.polygon(
-    [(dst_bx0_5, dst_cy_5), (dst_bx0_5 - a, dst_cy_5 - a), (dst_bx0_5 - a, dst_cy_5 + a)],
-    fill="#E91E63",
-)
+draw.polygon([(rag_dst_x, rag_dst_y), (rag_dst_x - a, rag_dst_y - a), (rag_dst_x + a, rag_dst_y - a)], fill="#4CAF50")
 
-# Label the fork
-draw.text(
-    ((src_cx_3 + dst_bx0_5 - 20) // 2, fork_y - 16),
-    "summarized_tweets.json (分叉)",
-    fill="#E91E63",
-    font=font_small,
-    anchor="mt",
-)
+# Right branch → 通知&归档
+draw.line([(fork_start_x, fork_y), (notify_dst_x, fork_y)], fill="#E91E63", width=2)
+draw.line([(notify_dst_x, fork_y), (notify_dst_x, notify_dst_y)], fill="#E91E63", width=2)
+a = 7
+draw.polygon([(notify_dst_x, notify_dst_y), (notify_dst_x - a, notify_dst_y - a), (notify_dst_x + a, notify_dst_y - a)], fill="#E91E63")
+
+# Fork dot
+draw.ellipse([(fork_start_x - 5, fork_y - 5), (fork_start_x + 5, fork_y + 5)], fill="#666666")
 
 # Legend at bottom
-legend_y = HEIGHT - 50
+legend_y = HEIGHT - 40
 legend_items = [
     ("#666666", "顺序流程"),
-    ("#E91E63", "分叉路径 (摘要同时送入 RAG 和通知)"),
+    ("#4CAF50", "分叉 → RAG 入库"),
+    ("#E91E63", "分叉 → 通知 & 归档"),
 ]
 lx = MARGIN_X + 20
 for color, label in legend_items:
-    draw.rectangle([(lx, legend_y), (lx + 30, legend_y + 16)], fill=color)
-    draw.text((lx + 38, legend_y + 8), label, fill="#333333", font=font_small, anchor="lm")
-    lx += 350
+    draw.rectangle([(lx, legend_y), (lx + 24, legend_y + 14)], fill=color)
+    draw.text((lx + 32, legend_y + 7), label, fill="#333333", font=font_small, anchor="lm")
+    lx += 280
 
 # Save
 out_path = "/home/user/ai-builder-digest/docs/workflow-main.png"
