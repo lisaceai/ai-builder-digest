@@ -4,9 +4,13 @@
 """
 
 import os
+import time
+import logging
 from datetime import timedelta
 from openai import OpenAI
 from scripts.rag_store import get_all_tweets_metadata, search_tweets, _load_json_store
+
+logger = logging.getLogger(__name__)
 
 
 TRENDS_SYSTEM_PROMPT = """你是一个 AI 技术趋势分析师，必须严格基于给定推文证据输出结论。
@@ -56,24 +60,34 @@ def _get_llm_client():
     return OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        timeout=25.0,
+        timeout=60.0,
     )
 
 
 def _call_llm(system_prompt, user_prompt):
-    """调用 LLM"""
+    """调用 LLM（带重试，最多 3 次，指数退避）"""
     client = _get_llm_client()
-    response = client.chat.completions.create(
-        model="glm-4.7",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.5,
-        max_tokens=2000,
-        extra_body={"thinking": {"type": "disabled"}},
-    )
-    return response.choices[0].message.content.strip()
+    last_err = None
+    for attempt in range(3):
+        try:
+            response = client.chat.completions.create(
+                model="glm-4.7",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.5,
+                max_tokens=2000,
+                extra_body={"thinking": {"type": "disabled"}},
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            last_err = e
+            if attempt < 2:
+                wait = 2 ** attempt  # 1s, 2s
+                logger.warning(f"Zhipu LLM call failed (attempt {attempt + 1}/3), retrying in {wait}s: {e}")
+                time.sleep(wait)
+    raise RuntimeError(f"Zhipu API 调用失败（已重试 3 次）: {last_err}")
 
 
 # 趋势分析的通用语义查询词，用于向量搜索召回最有代表性的推文

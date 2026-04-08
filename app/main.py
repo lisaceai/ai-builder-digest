@@ -132,11 +132,11 @@ async def rag_ask(req: QuestionRequest):
                 None,
                 partial(ask, question=req.question, n_results=req.n_results, username=req.username),
             ),
-            timeout=28.0,
+            timeout=90.0,
         )
         return result
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="请求超时，请稍后重试（Zhipu API 响应较慢）")
+        raise HTTPException(status_code=504, detail="请求超时（已自动重试 3 次），请稍后再试")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -151,11 +151,11 @@ async def rag_trends(days: Optional[int] = None):
         loop = asyncio.get_running_loop()
         result = await asyncio.wait_for(
             loop.run_in_executor(None, partial(analyze_trends, days=days)),
-            timeout=28.0,
+            timeout=90.0,
         )
         return result
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="请求超时，请稍后重试（Zhipu API 响应较慢）")
+        raise HTTPException(status_code=504, detail="请求超时（已自动重试 3 次），请稍后再试")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

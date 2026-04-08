@@ -5,8 +5,12 @@ RAG 问答模块
 
 import os
 import json
+import time
+import logging
 from openai import OpenAI
 from scripts.rag_store import search_tweets, get_all_tweets_stats
+
+logger = logging.getLogger(__name__)
 
 
 def _load_known_builders():
@@ -127,23 +131,37 @@ def ask(question, n_results=5, username=None, db_path=None):
     client = OpenAI(
         api_key=api_key,
         base_url="https://open.bigmodel.cn/api/paas/v4",
-        timeout=25.0,
+        timeout=60.0,
     )
 
     prompt = QA_USER_PROMPT.format(context=context, question=question)
 
-    response = client.chat.completions.create(
-        model="glm-4.7",
-        messages=[
-            {"role": "system", "content": QA_SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.3,
-        max_tokens=1500,
-        extra_body={"thinking": {"type": "disabled"}},
-    )
+    # 带重试的 LLM 调用（最多 3 次，指数退避）
+    answer = None
+    last_err = None
+    for attempt in range(3):
+        try:
+            response = client.chat.completions.create(
+                model="glm-4.7",
+                messages=[
+                    {"role": "system", "content": QA_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+                max_tokens=1500,
+                extra_body={"thinking": {"type": "disabled"}},
+            )
+            answer = response.choices[0].message.content.strip()
+            break
+        except Exception as e:
+            last_err = e
+            if attempt < 2:
+                wait = 2 ** attempt  # 1s, 2s
+                logger.warning(f"Zhipu LLM call failed (attempt {attempt + 1}/3), retrying in {wait}s: {e}")
+                time.sleep(wait)
 
-    answer = response.choices[0].message.content.strip()
+    if answer is None:
+        raise RuntimeError(f"Zhipu API 调用失败（已重试 3 次）: {last_err}")
 
     # 4. 构建来源列表
     sources = []
